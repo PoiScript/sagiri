@@ -4,3 +4,8 @@ version = "0.1.0"
 authors = ["PoiScript <poiscript@gmail.com>"]
 
 [dependencies]
+rocket = "0.2.6"
+rocket_codegen = "0.2.6"
+reqwest = "0.5.1"
+env_logger = "0.4.2"
+url = "1.4.0"

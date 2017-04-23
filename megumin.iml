@@ -11,6 +11,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Rust &lt;megumin&gt;" level="project" />
     <orderEntry type="library" name="Cargo &lt;megumin&gt;" level="project" />
   </component>
 </module>

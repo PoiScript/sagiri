@@ -1,3 +1,10 @@
+extern crate reqwest;
+extern crate env_logger;
+
+mod telegram;
+
+pub use telegram::*;
+
 fn main() {
-    println!("Hello, world!");
+    print!("Megumin Here");
 }
