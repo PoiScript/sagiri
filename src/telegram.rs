@@ -1,11 +1,7 @@
-extern crate reqwest;
-extern crate env_logger;
-extern crate url;
-
 use std::io::Read;
 use std::io::Result;
-use self::url::Url;
-use reqwest::Client;
+use hyper::Url;
+use hyper::Client;
 
 pub const API_URL: &'static str = "https://api.telegram.org/bot";
 
@@ -15,11 +11,11 @@ pub struct TelegramBot {
 }
 
 impl TelegramBot {
-    pub fn new(token: &str) -> Result<TelegramBot> {
+    pub fn new(token: &str, client: Client) -> Result<TelegramBot> {
         let url = format!("{}{}/", API_URL, token);
         Ok(TelegramBot {
             url: Url::parse(&url).unwrap(),
-            client: Client::new().unwrap(),
+            client: client,
         })
     }
 
