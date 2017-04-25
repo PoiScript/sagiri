@@ -6,3 +6,6 @@ authors = ["PoiScript <poiscript@gmail.com>"]
 [dependencies]
 hyper = "0.10.9"
 hyper-native-tls = "0.2.2"
+serde = "1.0.1"
+serde_derive = "1.0.1"
+serde_json = "1.0"
