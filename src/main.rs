@@ -6,12 +6,17 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
+mod matrix;
 mod telegram;
 
+use matrix::types::*;
+
+use matrix::bot::MatrixBot;
 use telegram::bot::TelegramBot;
 use hyper::Client;
 use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
+use std::default::Default;
 
 fn main() {
     let ssl = NativeTlsClient::new().unwrap();
