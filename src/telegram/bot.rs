@@ -3,6 +3,8 @@ use hyper::Url;
 use hyper::Client;
 use serde_json::from_str;
 use serde::de::DeserializeOwned;
+use hyper::net::HttpsConnector;
+use hyper_native_tls::NativeTlsClient;
 
 use telegram::types::*;
 
@@ -10,17 +12,25 @@ pub const API_URL: &'static str = "https://api.telegram.org/bot";
 
 pub struct TelegramBot {
     url: Url,
-    client: Client
+    client: Client,
+    handler: fn(Update)
 }
 
 impl TelegramBot {
-    pub fn new(token: &str, client: Client) -> TelegramBot {
+    pub fn new(token: &str, handler: fn(Update)) -> TelegramBot {
         let url = format!("{}{}/", API_URL, token);
+        let ssl = NativeTlsClient::new().unwrap();
+        let connector = HttpsConnector::new(ssl);
 
         TelegramBot {
             url: Url::parse(&url).unwrap(),
-            client: client,
+            client: Client::with_connector(connector),
+            handler: handler
         }
+    }
+
+    pub fn handle(&self, update: Update) {
+        (&self.handler)(update)
     }
 
     pub fn set_webhook(&self, token: &str, domain: &str, max_connections: Option<Integer>,

@@ -8,20 +8,19 @@ extern crate serde_derive;
 
 mod matrix;
 mod telegram;
+mod webhook;
 
-use matrix::types::*;
-
+use webhook::webhook::WebHook;
 use matrix::bot::MatrixBot;
 use telegram::bot::TelegramBot;
-use hyper::Client;
-use hyper::net::HttpsConnector;
-use hyper_native_tls::NativeTlsClient;
-use std::default::Default;
 
 fn main() {
-    let ssl = NativeTlsClient::new().unwrap();
-    let connector = HttpsConnector::new(ssl);
-    let client = Client::with_connector(connector);
-
     print!("Sagiri Here");
+//
+//    let tg_bot = TelegramBot::new("token");
+//    let mx_bot = MatrixBot::new("http://matrix.org", "token");
+//
+//    let webhook = WebHook::new(mx_bot, tg_bot);
+//
+//    webhook.start();
 }

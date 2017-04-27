@@ -1,10 +1,11 @@
-use std::io::{Read, Result};
+use std::io::Read;
 use hyper::Url;
 use hyper::Client;
 use hyper::method::Method;
 use serde_json::{from_str, to_string};
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use hyper::net::HttpsConnector;
+use hyper_native_tls::NativeTlsClient;
 
 use matrix::types::*;
 
@@ -15,13 +16,15 @@ pub struct MatrixBot {
 }
 
 impl MatrixBot {
-    pub fn new(homeserver: &str, token: &str, client: Client) -> MatrixBot {
+    pub fn new(homeserver: &str, token: &str) -> MatrixBot {
         let url = format!("{}/_matrix/client/r0/", homeserver);
+        let ssl = NativeTlsClient::new().unwrap();
+        let connector = HttpsConnector::new(ssl);
 
         MatrixBot {
             url: Url::parse(&url).unwrap(),
             token: token.to_string(),
-            client: client,
+            client: Client::with_connector(connector),
         }
     }
 
