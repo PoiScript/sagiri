@@ -7,30 +7,25 @@ use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 
 use telegram::types::*;
+use sagiri::Adapter;
 
 pub const API_URL: &'static str = "https://api.telegram.org/bot";
 
-pub struct TelegramBot {
+pub struct TelegramAdapter {
     url: Url,
     client: Client,
-    handler: fn(Update)
 }
 
-impl TelegramBot {
-    pub fn new(token: &str, handler: fn(Update)) -> TelegramBot {
+impl TelegramAdapter {
+    pub fn new(token: &str) -> TelegramAdapter {
         let url = format!("{}{}/", API_URL, token);
         let ssl = NativeTlsClient::new().unwrap();
         let connector = HttpsConnector::new(ssl);
 
-        TelegramBot {
+        TelegramAdapter {
             url: Url::parse(&url).unwrap(),
             client: Client::with_connector(connector),
-            handler: handler
         }
-    }
-
-    pub fn handle(&self, update: Update) {
-        (&self.handler)(update)
     }
 
     pub fn set_webhook(&self, token: &str, domain: &str, max_connections: Option<Integer>,
@@ -56,15 +51,15 @@ impl TelegramBot {
         Self::post_request(&self.client, url.as_str()).unwrap()
     }
 
-    pub fn send_message(&self, chat_id: Integer, text: &str) -> Message {
-        let mut url = self.url.join("sendMessage").unwrap();
-
-        url.query_pairs_mut()
-            .append_pair("chat_id", &*chat_id.to_string())
-            .append_pair("text", text);
-
-        Self::post_request(&self.client, url.as_str()).unwrap()
-    }
+//    pub fn send_message(&self, chat_id: Integer, text: &str) -> Result<Message, Error> {
+//        let mut url = self.url.join("sendMessage").unwrap();
+//
+//        url.query_pairs_mut()
+//            .append_pair("chat_id", &*chat_id.to_string())
+//            .append_pair("text", text);
+//
+//        match Self::post_request(&self.client, url.as_str())
+//    }
 
     // Telegram Bot API supports both GET and POST, so one post function is enough.
     fn post_request<T: DeserializeOwned>(client: &Client, url: &str) -> Result<T, Error> {

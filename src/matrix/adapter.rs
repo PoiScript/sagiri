@@ -9,19 +9,19 @@ use hyper_native_tls::NativeTlsClient;
 
 use matrix::types::*;
 
-pub struct MatrixBot {
+pub struct MatrixAdapter {
     url: Url,
     token: String,
     client: Client
 }
 
-impl MatrixBot {
-    pub fn new(homeserver: &str, token: &str) -> MatrixBot {
+impl MatrixAdapter {
+    pub fn new(homeserver: &str, token: &str) -> MatrixAdapter {
         let url = format!("{}/_matrix/client/r0/", homeserver);
         let ssl = NativeTlsClient::new().unwrap();
         let connector = HttpsConnector::new(ssl);
 
-        MatrixBot {
+        MatrixAdapter {
             url: Url::parse(&url).unwrap(),
             token: token.to_string(),
             client: Client::with_connector(connector),
@@ -31,13 +31,13 @@ impl MatrixBot {
     pub fn get_profile(&self, user_id: String) -> Profile {
         let url = format!("{}{}/{}", &self.url, "profile", &user_id);
 
-        MatrixBot::send_request(&self.client, Method::Get, &url, None)
+        MatrixAdapter::send_request(&self.client, Method::Get, &url, None)
     }
 
     pub fn send_event(&self, room_id: String, event: Text) -> String {
         let url = format!("{}{}/{}/send/{}/{}?access_token={}", &self.url, "rooms", &room_id, "m.text", 233, self.token);
 
-        MatrixBot::send_request(&self.client, Method::Put, &url, Some(&to_string(&url).unwrap()))
+        MatrixAdapter::send_request(&self.client, Method::Put, &url, Some(&to_string(&url).unwrap()))
     }
 
     // Matrix Client-Server API is RESTful
