@@ -1,6 +1,6 @@
 use std::default::Default;
 
-//  primitive telegram
+//  primitive adapter.telegram
 pub type Integer = i32;
 
 #[derive(Serialize, Deserialize)]

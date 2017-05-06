@@ -8,13 +8,13 @@ extern crate serde_derive;
 extern crate log;
 extern crate env_logger;
 
-mod matrix;
-mod telegram;
+mod adapter;
+mod command;
 mod sagiri;
 
-use sagiri::*;
-use matrix::adapter::MatrixAdapter;
-use telegram::adapter::TelegramAdapter;
+use sagiri::Sagiri;
+use adapter::matrix::MatrixAdapter;
+use adapter::telegram::TelegramAdapter;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

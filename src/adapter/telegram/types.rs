@@ -1,12 +1,6 @@
-//  primitive telegram
+//  primitive adapter.telegram
 pub type Integer = i64;
 pub type Float = f32;
-
-#[derive(Debug)]
-pub enum Error {
-    Api(String),
-    Invalid(String),
-}
 
 // Response from Telegram Bot API, See: https://core.telegram.org/bots/api#making-requests
 #[derive(Serialize, Deserialize)]
