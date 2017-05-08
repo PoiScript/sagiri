@@ -7,16 +7,18 @@ use hyper::uri::RequestUri;
 pub enum Error {
     Api(String),
     TimeOut(String),
-    Invalid(String)
+    Invalid(String),
+    Nom(String),
+    NA()
 }
 
 pub trait Message {
-    fn get_sender_id(&self) -> String;
-    fn get_sender_name(&self) -> String;
-    fn get_chat_id(&self) -> String;
-    fn get_chat_name(&self) -> String;
-    fn get_command(&self) -> String;
-    fn get_argument(&self) -> String;
+    fn get_sender_id(self) -> Result<String, Error>;
+    fn get_sender_name(self) -> Result<String, Error>;
+    fn get_chat_id(self) -> String;
+    fn get_chat_name(self) -> Result<String, Error>;
+    fn get_command(self) -> Result<String, Error>;
+    fn get_argument(self) -> Result<String, Error>;
 }
 
 pub trait Adapter: Send + Sync {
@@ -24,7 +26,7 @@ pub trait Adapter: Send + Sync {
     fn name(&self) -> &str;
 
     // Return the URL that this adapter listen.
-    fn webhook(&self) -> String;
+    fn webhook(&self) -> &String;
 
     // Parse the Response from the WebHook.
     fn parse(&self, content: String) -> Result<Box<Message>, Error>;

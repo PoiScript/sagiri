@@ -1,3 +1,10 @@
+use adapter::Message as sMessage;
+use adapter::Error;
+use std::str;
+use nom::{eol, alphanumeric, non_empty};
+use nom::IResult::{Done, Incomplete};
+use nom::IResult::Error as NomError;
+
 //  primitive adapter.telegram
 pub type Integer = i64;
 pub type Float = f32;
@@ -59,6 +66,77 @@ pub struct Message {
     pub new_chat_member: Option<User>,
     pub left_chat_member: Option<User>
 }
+
+impl sMessage for Message {
+    fn get_sender_id(self) -> Result<String, Error> {
+        match self.from {
+            Some(user) => Ok(user.id.to_string()),
+            None => Err(Error::NA())
+        }
+    }
+
+    fn get_sender_name(self) -> Result<String, Error> {
+        match self.from {
+            Some(user) => match user.username {
+                Some(username) => Ok(username),
+                None => Ok(user.first_name)
+            },
+            None => Err(Error::NA())
+        }
+    }
+
+    fn get_chat_id(self) -> String {
+        self.chat.id.to_string()
+    }
+
+    fn get_chat_name(self) -> Result<String, Error> {
+        match self.chat.title {
+            Some(title) => Ok(title),
+            None => Err(Error::NA())
+        }
+    }
+
+    fn get_command(self) -> Result<String, Error> {
+        match self.text {
+            Some(text) => {
+                match get_command(&text.as_bytes()) {
+                    Done(I, O) => Ok(O.to_string()),
+                    Incomplete(_) => Err(Error::Invalid("Invalid Message".to_owned())),
+                    NomError(err) => Err(Error::Nom("Unable to parse".to_owned())),
+                }
+            }
+            None => Err(Error::NA())
+        }
+    }
+
+    fn get_argument(self) -> Result<String, Error> {
+        match self.text {
+            Some(text) => {
+                match get_arguments(&text.as_bytes()) {
+                    Done(I, O) => Ok(O.to_string()),
+                    Incomplete(_) => Err(Error::Invalid("Invalid Message".to_owned())),
+                    NomError(err) => Err(Error::Nom("Unable to parse".to_owned())),
+                }
+            }
+            None => Err(Error::NA())
+        }
+    }
+}
+
+named!(get_command<(&str)>, do_parse!(
+    tag!("/") >>
+    command: map_res!(alphanumeric, str::from_utf8) >>
+    (command)
+));
+
+named!(get_arguments<(&str)>, do_parse!(
+    tag!("/") >>
+    alphanumeric >>
+    opt!(tag!("@SagiriBot")) >>
+    tag!(" ") >> // TODO: Use Early Return
+    arguments: map_res!(alt!(eof!() | eol | non_empty), str::from_utf8) >>
+    (arguments)
+));
 
 // Telegram Sticker, See: https://core.telegram.org/bots/api#sticker
 #[derive(Serialize, Deserialize)]

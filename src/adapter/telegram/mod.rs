@@ -19,8 +19,8 @@ pub const API_URL: &'static str = "https://api.adapter.telegram.org/bot";
 
 pub struct TelegramAdapter {
     url: Url,
+    webhook: String,
     client: Client,
-    webhook_url: RequestUri,
 }
 
 impl Adapter for TelegramAdapter {
@@ -28,17 +28,27 @@ impl Adapter for TelegramAdapter {
         "Telegram"
     }
 
-    // Return the URL that this adapter listen.
-    fn webhook(&self) -> String {
-        "test".to_string()
+    fn webhook(&self) -> &String {
+        &self.webhook
     }
 
-    // Parse the Response from the WebHook.
     fn parse(&self, content: String) -> Result<Box<sMessage>, Error> {
-        Err(Error::Api("test".to_string()))
+        match from_str(&*content) {
+            Ok(json) => {
+                match json {
+                    Update { message: Some(message), .. } => {
+                        Ok(Box::new(message))
+                    },
+                    Update { edited_message: Some(message), .. } => {
+                        Ok(Box::new(message))
+                    }
+                    _ => Err(Error::Invalid("Invalid Update".to_owned()))
+                }
+            }
+            Err(_) => Err(Error::Invalid("Invalid JSON.".to_owned()))
+        }
     }
 
-    // Send Message by HTTP Client.
     fn send(&self, msg: Box<sMessage>) -> Result<(), Error> {
         Err(Error::Api("test".to_string()))
     }
@@ -49,12 +59,11 @@ impl TelegramAdapter {
         let url = format!("{}{}/", API_URL, token);
         let ssl = NativeTlsClient::new().unwrap();
         let connector = HttpsConnector::new(ssl);
-        let webhook_url = format!("/api/tg/{}/", token);
 
         TelegramAdapter {
             url: Url::parse(&url).unwrap(),
+            webhook: format!("/api/tg/{}/", token),
             client: Client::with_connector(connector),
-            webhook_url: RequestUri::from_str(&*webhook_url).unwrap(),
         }
     }
 
