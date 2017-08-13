@@ -56,9 +56,9 @@ impl Update {
     } else if let Some(p) = self.pre_checkout_query {
       Ok(Received::PreCheckoutQuery(p))
     } else {
-      Err(Error::Telegram(
-        TelegramError { description: "can't parse update".to_owned() },
-      ))
+      Err(Error::Telegram(TelegramError {
+        description: "can't parse update".to_owned(),
+      }))
     }
   }
 }

@@ -19,5 +19,5 @@ mod types;
 mod database;
 
 fn main() {
-  println!("Sagiri Here.")
+  println!("Sagiri Here.");
 }

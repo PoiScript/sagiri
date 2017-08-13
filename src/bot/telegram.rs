@@ -28,10 +28,10 @@ impl Bot {
     }
   }
 
-  pub fn request<T, S>(&self, method: &str, data: &S) -> Box<Future<Item=T, Error=Error>>
-    where
-      S: Serialize,
-      T: DeserializeOwned + 'static,
+  pub fn request<T, S>(&self, method: &str, data: &S) -> Box<Future<Item = T, Error = Error>>
+  where
+    S: Serialize,
+    T: DeserializeOwned + 'static,
   {
     let uri = Uri::from_str(&format!("{}{}", self.base_url, method)).expect("error/build-uri");
 
@@ -48,9 +48,9 @@ impl Bot {
           .body()
           .from_err::<Error>()
           .concat2()
-          .and_then(|chunks|
+          .and_then(|chunks| {
             future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
-          )
+          })
           .and_then(|response| match response {
             Response::Ok { result } => from_value(result).map_err(|e| e.into()),
 
@@ -67,7 +67,7 @@ pub struct UpdateStream {
   bot: Bot,
   timeout: Duration,
   next_offset: i32,
-  pending_response: Option<Box<Future<Item=Vec<Update>, Error=Error>>>,
+  pending_response: Option<Box<Future<Item = Vec<Update>, Error = Error>>>,
   pending_updates: Vec<Update>,
 }
 
@@ -82,7 +82,7 @@ impl UpdateStream {
     }
   }
 
-  fn get_updates(&self, offset: i32) -> Box<Future<Item=Vec<Update>, Error=Error>> {
+  fn get_updates(&self, offset: i32) -> Box<Future<Item = Vec<Update>, Error = Error>> {
     let req = GetUpdate {
       offset,
       timeout: self.timeout.as_secs() as i32,

@@ -53,9 +53,9 @@ impl Api {
           .body()
           .from_err::<Error>()
           .concat2()
-          .and_then(|chunks|
+          .and_then(|chunks| {
             future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
-          )
+          })
           .and_then(|response| match response {
             Response::Ok { data } => from_value(data).map_err(|e| e.into()),
 
