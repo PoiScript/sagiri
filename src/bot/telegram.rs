@@ -8,7 +8,7 @@ use hyper::header::{ContentType, ContentLength};
 
 use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
-use serde_json::{from_value, from_str, to_string};
+use serde_json::{from_value, from_slice, to_string};
 
 use types::Client;
 use error::{Error, TelegramError};
@@ -47,15 +47,10 @@ impl Bot {
         res
           .body()
           .from_err::<Error>()
-          .fold(Vec::new(), |mut v, chunk| {
-            v.extend(&chunk[..]);
-            future::ok::<_, Error>(v)
-          })
-          .and_then(|chunks| {
-            let s = String::from_utf8(chunks).unwrap();
-
-            future::result::<Response, Error>(from_str(&s).map_err(|e| e.into()))
-          })
+          .concat2()
+          .and_then(|chunks|
+            future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
+          )
           .and_then(|response| match response {
             Response::Ok { result } => from_value(result).map_err(|e| e.into()),
 

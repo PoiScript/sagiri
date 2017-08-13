@@ -3,6 +3,7 @@ use std::{io, fmt};
 
 use hyper;
 use serde_json;
+use types::kitsu::ApiError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -15,11 +16,12 @@ pub enum Error {
   // JSON Error
   Json(serde_json::Error),
 
+  // Kitsu API Error
+  Kitsu(KitsuError),
+
   // Telegram API Error
-  Telegram(TelegramError)
+  Telegram(TelegramError),
 }
-
-
 
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -27,6 +29,7 @@ impl fmt::Display for Error {
       Error::Io(ref err) => write!(f, "{}", err),
       Error::Json(ref err) => write!(f, "{}", err),
       Error::Hyper(ref err) => write!(f, "{}", err),
+      Error::Kitsu(ref err) => write!(f, "{}", err),
       Error::Telegram(ref err) => write!(f, "{}", err),
     }
   }
@@ -38,6 +41,7 @@ impl error::Error for Error {
       Error::Io(ref err) => err.description(),
       Error::Json(ref err) => err.description(),
       Error::Hyper(ref err) => err.description(),
+      Error::Kitsu(ref err) => err.description(),
       Error::Telegram(ref err) => err.description(),
     }
   }
@@ -47,6 +51,7 @@ impl error::Error for Error {
       Error::Io(ref err) => Some(err),
       Error::Json(ref err) => Some(err),
       Error::Hyper(ref err) => Some(err),
+      Error::Kitsu(ref err) => Some(err),
       Error::Telegram(ref err) => Some(err),
     }
   }
@@ -66,24 +71,36 @@ impl_from!(Error::Io, io::Error);
 impl_from!(Error::Hyper, hyper::Error);
 impl_from!(Error::Json, serde_json::Error);
 
-//impl Error for KitsuApiError {
-//  fn description(&self) -> &str { "Kits API Error" }
-//}
-//
-//impl fmt::Display for KitsuApiError {
-//  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-//    write!(f, ": Kitsu")?,
-//    Ok(())
-//  }
-//}
+#[derive(Debug)]
+pub struct KitsuError {
+  pub errors: Vec<ApiError>,
+}
+
+impl error::Error for KitsuError {
+  fn description(&self) -> &str {
+    "Kits API Error"
+  }
+}
+
+impl fmt::Display for KitsuError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    write!(f, ": ")?;
+    for error in &self.errors {
+      write!(f, "[{}: {}]", error.title, error.detail)?;
+    }
+    Ok(())
+  }
+}
 
 #[derive(Debug)]
 pub struct TelegramError {
-  pub description: String
+  pub description: String,
 }
 
 impl error::Error for TelegramError {
-  fn description(&self) -> &str { "Telegram API Error" }
+  fn description(&self) -> &str {
+    "Telegram API Error"
+  }
 }
 
 impl fmt::Display for TelegramError {
@@ -92,4 +109,3 @@ impl fmt::Display for TelegramError {
     Ok(())
   }
 }
-
