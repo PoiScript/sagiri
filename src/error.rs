@@ -68,8 +68,10 @@ macro_rules! impl_from {
 }
 
 impl_from!(Error::Io, io::Error);
+impl_from!(Error::Kitsu, KitsuError);
 impl_from!(Error::Hyper, hyper::Error);
 impl_from!(Error::Json, serde_json::Error);
+impl_from!(Error::Telegram, TelegramError);
 
 #[derive(Debug)]
 pub struct KitsuError {
