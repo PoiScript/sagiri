@@ -19,5 +19,7 @@ mod types;
 mod database;
 
 fn main() {
+  env_logger::init().expect("error/env-logger");
+
   println!("Sagiri Here.");
 }

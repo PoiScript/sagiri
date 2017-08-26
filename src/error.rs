@@ -19,6 +19,9 @@ pub enum Error {
   // Kitsu API Error
   Kitsu(KitsuError),
 
+  // Database Error
+  Database(DatabaseError),
+
   // Telegram API Error
   Telegram(TelegramError),
 }
@@ -30,6 +33,7 @@ impl fmt::Display for Error {
       Error::Json(ref err) => write!(f, "{}", err),
       Error::Hyper(ref err) => write!(f, "{}", err),
       Error::Kitsu(ref err) => write!(f, "{}", err),
+      Error::Database(ref err) => write!(f, "{}", err),
       Error::Telegram(ref err) => write!(f, "{}", err),
     }
   }
@@ -42,6 +46,7 @@ impl error::Error for Error {
       Error::Json(ref err) => err.description(),
       Error::Hyper(ref err) => err.description(),
       Error::Kitsu(ref err) => err.description(),
+      Error::Database(ref err) => err.description(),
       Error::Telegram(ref err) => err.description(),
     }
   }
@@ -52,36 +57,15 @@ impl error::Error for Error {
       Error::Json(ref err) => Some(err),
       Error::Hyper(ref err) => Some(err),
       Error::Kitsu(ref err) => Some(err),
+      Error::Database(ref err) => Some(err),
       Error::Telegram(ref err) => Some(err),
     }
   }
 }
 
-macro_rules! impl_from {
-  ($v:path, $t:ty) => {
-    impl From<$t> for Error {
-      fn from(err: $t) -> Self {
-        $v(err)
-      }
-    }
-  }
-}
-
-impl_from!(Error::Io, io::Error);
-impl_from!(Error::Kitsu, KitsuError);
-impl_from!(Error::Hyper, hyper::Error);
-impl_from!(Error::Json, serde_json::Error);
-impl_from!(Error::Telegram, TelegramError);
-
 #[derive(Debug)]
 pub struct KitsuError {
   pub errors: Vec<ApiError>,
-}
-
-impl error::Error for KitsuError {
-  fn description(&self) -> &str {
-    "Kits API Error"
-  }
 }
 
 impl fmt::Display for KitsuError {
@@ -99,15 +83,53 @@ pub struct TelegramError {
   pub description: String,
 }
 
-impl error::Error for TelegramError {
-  fn description(&self) -> &str {
-    "Telegram API Error"
+#[derive(Debug)]
+pub struct DatabaseError {
+  pub description: String,
+}
+
+macro_rules! impl_from {
+  ($v:path, $t:ty) => {
+    impl From<$t> for Error {
+      fn from(err: $t) -> Self {
+        $v(err)
+      }
+    }
   }
 }
 
-impl fmt::Display for TelegramError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    write!(f, ": {}", self.description)?;
-    Ok(())
+macro_rules! impl_error {
+  ($v:ty, $t:expr) => {
+    impl error::Error for $v {
+      fn description(&self) -> &str {
+        $t
+      }
+    }
   }
 }
+
+macro_rules! impl_display {
+  ($v:ty) => {
+    impl fmt::Display for $v {
+      fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, ": {}", self.description)?;
+        Ok(())
+      }
+    }
+  }
+}
+
+impl_from!(Error::Io, io::Error);
+impl_from!(Error::Kitsu, KitsuError);
+impl_from!(Error::Hyper, hyper::Error);
+impl_from!(Error::Json, serde_json::Error);
+impl_from!(Error::Database, DatabaseError);
+impl_from!(Error::Telegram, TelegramError);
+
+impl_display!(TelegramError);
+impl_display!(DatabaseError);
+
+impl_error!(KitsuError, "Kits API Error");
+impl_error!(TelegramError, "Telegram API Error");
+impl_error!(DatabaseError, "Database Error");
+
