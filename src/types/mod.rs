@@ -16,7 +16,7 @@ pub enum DatabaseResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct User {
-  pub kitsu_id: i32,
-  pub telegram_id: i32,
+  pub kitsu_id: i64,
+  pub telegram_id: i64,
   pub kitsu_token: String,
 }

@@ -1,3 +1,4 @@
+use futures::{done, Future};
 use serde_json::Value;
 use error::{Error, TelegramError};
 
@@ -63,16 +64,33 @@ impl Update {
   }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Message {
-  pub message_id: i64,
-  pub from: User,
-  pub date: i32,
-  pub chat: Chat,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub message_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub from: Option<User>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub date: Option<i32>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub chat: Option<Chat>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub text: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub chat_id: Option<i64>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+
+pub fn send_message(chat_id: i64, text: String) -> Box<Future<Item = Message, Error = Error>> {
+  let msg = Message {
+    text: Some(text),
+    chat_id: Some(chat_id),
+    ..Default::default()
+  };
+  Box::new(done::<Message, Error>(Ok(msg)))
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
   pub id: i64,
   pub first_name: String,
@@ -81,7 +99,7 @@ pub struct User {
   pub language_code: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Chat {
   pub id: i64,
   #[serde(rename = "type")]
@@ -93,7 +111,7 @@ pub struct Chat {
   pub all_members_are_administrators: Option<bool>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ChatType {
   Private,
@@ -109,10 +127,4 @@ pub struct Empty;
 pub struct GetUpdate {
   pub offset: i32,
   pub timeout: i32,
-}
-
-#[derive(Serialize)]
-pub struct SendMessage {
-  pub chat_id: i64,
-  pub text: String,
 }

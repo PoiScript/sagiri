@@ -57,7 +57,7 @@ impl Database {
     self.users = users
   }
 
-  pub fn get_user(&mut self, telegram_id: i32) -> Option<&User> {
+  pub fn get_user(&mut self, telegram_id: i64) -> Option<&User> {
     self.users.iter().find(|ref x| x.telegram_id == telegram_id)
   }
 }

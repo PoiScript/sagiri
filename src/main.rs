@@ -18,15 +18,17 @@ mod bot;
 mod error;
 mod kitsu;
 mod types;
+mod handler;
 mod database;
 
 use hyper::Client;
 use futures::{Future, Stream};
 use hyper_tls::HttpsConnector;
+use serde_json::to_string;
 use tokio_core::reactor::Core;
 
 use bot::telegram::UpdateStream;
-use types::telegram::Received;
+use types::telegram::{Received, Message};
 
 fn main() {
   const TOKEN: &'static str = env!("TOKEN");
@@ -42,21 +44,20 @@ fn main() {
     ))
     .build(&handle);
 
-  let api = kitsu::Api::new(client.clone());
   let tg_bot = bot::telegram::Bot::new(TOKEN, client.clone());
-  let mut db = database::Database::new(TOKEN.to_string(), client);
+
+  let mut handler = handler::Handler::new(client.clone(), TOKEN.to_string());
 
   let work = UpdateStream::new(tg_bot.clone())
     .filter_map(|update| match update {
       Received::Message(msg) => Some(msg),
       _ => None,
     })
-    .and_then(|msg| {
-      println!("{:?}", msg);
-      Ok(())
+    .and_then(|res| handler.handle(res))
+    .and_then(|message| {
+      tg_bot.request::<_, Message>("sendMessage", &message)
     })
-    .for_each(|_| Ok(()));
-
+    .for_each(|_: Message| Ok(()));
 
   core.run(work).unwrap();
 
