@@ -10,11 +10,11 @@ use serde_json::from_slice;
 use error::{Error, DatabaseError};
 use types::{DatabaseResponse as Response, User, Client};
 
-#[derive(Clone)]
 pub struct Database {
   uri: Uri,
   token: String,
   client: Client,
+  users: Vec<User>,
 }
 
 impl Database {
@@ -22,6 +22,7 @@ impl Database {
     Database {
       token: token,
       client: client,
+      users: Vec::new(),
       uri: Uri::from_str(
         "https://us-central1-sagiri-izumi.cloudfunctions.net/api/kitsu/users.json",
       ).unwrap(),
@@ -50,5 +51,13 @@ impl Database {
           })
       },
     ))
+  }
+
+  pub fn update(&mut self, users: Vec<User>) {
+    self.users = users
+  }
+
+  pub fn get_user(&mut self, telegram_id: i32) -> Option<&User> {
+    self.users.iter().find(|ref x| x.telegram_id == telegram_id)
   }
 }

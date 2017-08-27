@@ -65,17 +65,7 @@ impl error::Error for Error {
 
 #[derive(Debug)]
 pub struct KitsuError {
-  pub errors: Vec<ApiError>,
-}
-
-impl fmt::Display for KitsuError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    write!(f, ": ")?;
-    for error in &self.errors {
-      write!(f, "[{}: {}]", error.title, error.detail)?;
-    }
-    Ok(())
-  }
+  pub description: String,
 }
 
 #[derive(Debug)]
@@ -126,10 +116,10 @@ impl_from!(Error::Json, serde_json::Error);
 impl_from!(Error::Database, DatabaseError);
 impl_from!(Error::Telegram, TelegramError);
 
+impl_display!(KitsuError);
 impl_display!(TelegramError);
 impl_display!(DatabaseError);
 
 impl_error!(KitsuError, "Kits API Error");
 impl_error!(TelegramError, "Telegram API Error");
 impl_error!(DatabaseError, "Database Error");
-

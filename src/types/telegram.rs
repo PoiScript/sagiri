@@ -11,7 +11,7 @@ pub enum Response {
 #[derive(Debug, Deserialize)]
 pub struct Update {
   pub update_id: i32,
-  message: Option<Value>,
+  message: Option<Message>,
   channel_post: Option<Value>,
   inline_query: Option<Value>,
   callback_query: Option<Value>,
@@ -24,7 +24,7 @@ pub struct Update {
 
 #[derive(Debug, Deserialize)]
 pub enum Received {
-  Message(Value),
+  Message(Message),
   ChannelPost(Value),
   InlineQuery(Value),
   CallbackQuery(Value),
