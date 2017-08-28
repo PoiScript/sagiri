@@ -2,8 +2,6 @@ pub mod kitsu;
 pub mod matrix;
 pub mod telegram;
 
-use std::fmt::Display;
-
 use hyper_tls::HttpsConnector;
 use hyper::client::{self, HttpConnector};
 

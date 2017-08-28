@@ -4,18 +4,13 @@ use futures::{future, Future, Stream};
 
 use hyper::mime::Mime;
 use hyper::{Uri, Method, Request};
-use hyper::header::{ContentType, ContentLength};
+use hyper::header::ContentType;
 
-use serde_json::Value;
-use serde::ser::Serialize;
-use serde::de::DeserializeOwned;
-use serde_json::{from_value, from_slice, to_string};
+use serde_json::{from_value, from_slice};
 
 use types::{Client, Url};
 use error::{Error, KitsuError};
 use types::kitsu::{Anime, Entries, Response};
-
-use types::telegram::Message;
 
 #[derive(Clone)]
 pub struct Api {

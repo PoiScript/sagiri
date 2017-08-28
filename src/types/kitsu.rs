@@ -1,8 +1,4 @@
-use std::collections::HashMap as Map;
-
-use error::{Error, KitsuError};
 use serde_json::Value;
-use serde::Deserialize;
 
 #[serde(untagged)]
 #[derive(Debug, Deserialize)]

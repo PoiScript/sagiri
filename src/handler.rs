@@ -1,11 +1,10 @@
-use error::Error;
-use futures::{Future, future};
 use nom::IResult;
-use serde_json::from_value;
+use futures::Future;
 
 use kitsu::Api;
+use error::Error;
 use database::Database;
-use types::{Client, User, Url};
+use types::Client;
 use types::telegram::{Message, send_message};
 
 #[derive(Debug)]

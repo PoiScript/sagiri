@@ -22,9 +22,8 @@ mod handler;
 mod database;
 
 use hyper::Client;
-use futures::{Future, Stream};
+use futures::Stream;
 use hyper_tls::HttpsConnector;
-use serde_json::to_string;
 use tokio_core::reactor::Core;
 
 use bot::telegram::UpdateStream;
@@ -57,7 +56,11 @@ fn main() {
     .and_then(|message| {
       tg_bot.request::<_, Message>("sendMessage", &message)
     })
-    .for_each(|_: Message| Ok(()));
+    .or_else(|e| {
+      error!("Sagiri: {:?}", e);
+      Ok::<(), ()>(())
+    })
+    .for_each(|_| Ok(()));
 
   core.run(work).unwrap();
 

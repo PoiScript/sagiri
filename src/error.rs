@@ -3,7 +3,6 @@ use std::{io, fmt};
 
 use hyper;
 use serde_json;
-use types::kitsu::ApiError;
 
 #[derive(Debug)]
 pub enum Error {
