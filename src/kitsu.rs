@@ -18,8 +18,6 @@ use types::kitsu::Anime;
 
 use types::telegram::Message;
 
-const BASE_URL: &'static str = "https://kitsu.io/api/edge/";
-
 #[derive(Clone)]
 pub struct Api {
   client: Client,
@@ -102,25 +100,5 @@ impl Api {
         }));
       }
     }))
-  }
-}
-
-pub struct Url {
-  url: String,
-}
-
-impl Url {
-  pub fn new(path: &str) -> Url {
-    Url { url: format!("{}{}?", BASE_URL, path) }
-  }
-
-  pub fn params(mut self, key: &str, value: &str) -> Self {
-    self.url.push_str(&format!("&{}={}", key, value));
-
-    self
-  }
-
-  pub fn get_url(self) -> String {
-    self.url
   }
 }

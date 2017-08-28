@@ -1,12 +1,10 @@
-use std::default::Default;
-
 use error::Error;
 use futures::{Future, future};
 use nom::IResult;
 
 use kitsu::Api;
 use database::Database;
-use types::{Client, User};
+use types::{Client, User, Url};
 use types::telegram::{Message, send_message};
 
 #[derive(Debug)]
@@ -25,7 +23,6 @@ named!(parse_message<&str, Command>,
 pub struct Handler {
   api: Api,
   db: Database,
-  users: Vec<User>,
 }
 
 impl Handler {
@@ -33,7 +30,6 @@ impl Handler {
     Handler {
       api: Api::new(client.clone()),
       db: Database::new(token, client),
-      users: Vec::new(),
     }
   }
 
@@ -46,7 +42,6 @@ impl Handler {
       IResult::Done(_, command) => {
         match command {
           Command::List => self.list(user_id, chat_id),
-          //          Command::Update => self.list(user_id, chat_id),
           Command::Update => self.update(chat_id),
         }
       }
@@ -59,6 +54,7 @@ impl Handler {
   }
 
   fn list(&mut self, user_id: i64, chat_id: i64) -> Box<Future<Item = Message, Error = Error>> {
+    let api = self.api.clone();
     match self.db.get_user(user_id) {
       None => send_message(chat_id, String::from("Unknown command")),
       Some(user) => {
@@ -70,7 +66,7 @@ impl Handler {
     }
   }
 
-  fn update(&self, chat_id: i64) -> Box<Future<Item = Message, Error = Error>> {
+  fn update(&mut self, chat_id: i64) -> Box<Future<Item = Message, Error = Error>> {
     Box::new(self.db.fetch().and_then(move |users| {
       send_message(chat_id, format!("Successful update: {} users", users.len()))
     }))

@@ -1,4 +1,6 @@
+use std::rc::Rc;
 use std::str::FromStr;
+use std::cell::RefCell;
 
 use futures::{Future, Stream, future};
 
@@ -14,7 +16,7 @@ pub struct Database {
   uri: Uri,
   token: String,
   client: Client,
-  users: Vec<User>,
+  users: Rc<RefCell<Vec<User>>>,
 }
 
 impl Database {
@@ -22,19 +24,20 @@ impl Database {
     Database {
       token: token,
       client: client,
-      users: Vec::new(),
+      users: Rc::new(RefCell::new(Vec::new())),
       uri: Uri::from_str(
         "https://us-central1-sagiri-izumi.cloudfunctions.net/api/kitsu/users.json",
       ).unwrap(),
     }
   }
 
-  pub fn fetch(&self) -> Box<Future<Item = Vec<User>, Error = Error>> {
+  pub fn fetch(&mut self) -> Box<Future<Item = Vec<User>, Error = Error>> {
+    let users = self.users.clone();
     let mut req = Request::new(Method::Get, self.uri.clone());
     req.headers_mut().set(Authorization(self.token.clone()));
 
     Box::new(self.client.request(req).from_err::<Error>().and_then(
-      |res| {
+      move |res| {
         res
           .body()
           .from_err::<Error>()
@@ -42,8 +45,11 @@ impl Database {
           .and_then(|chunks| {
             future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
           })
-          .and_then(|response| match response {
-            Response::Ok { data } => Ok(data),
+          .and_then(move |response| match response {
+            Response::Ok { data } => {
+              users.borrow_mut().clone_from(&data);
+              Ok(data)
+            }
 
             Response::Error { error } => {
               return Err(Error::Database(DatabaseError { description: error }));
@@ -53,11 +59,12 @@ impl Database {
     ))
   }
 
-  pub fn update(&mut self, users: Vec<User>) {
-    self.users = users
-  }
-
-  pub fn get_user(&mut self, telegram_id: i64) -> Option<&User> {
-    self.users.iter().find(|ref x| x.telegram_id == telegram_id)
+  pub fn get_user(&mut self, telegram_id: i64) -> Option<User> {
+    self
+      .users
+      .borrow()
+      .iter()
+      .find(|&x| &x.telegram_id == &telegram_id)
+      .cloned()
   }
 }
