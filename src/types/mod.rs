@@ -34,7 +34,7 @@ impl Url {
     Url { url: format!("{}{}?", BASE_URL, path) }
   }
 
-  pub fn params<T: Display>(mut self, key: &T, value: &T) -> Self {
+  pub fn params(mut self, key: &str, value: &str) -> Self {
     self.url.push_str(&format!("&{}={}", key, value));
 
     self

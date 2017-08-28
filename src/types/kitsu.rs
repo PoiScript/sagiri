@@ -62,16 +62,18 @@ pub struct UserAttributes {
   title_language_preference: String,
 }
 
+#[derive(Debug, Deserialize)]
 pub struct Entries {
   id: String,
   #[serde(rename = "type")]
   kind: Type,
-  attributes: EntriesAttributes,
+  pub attributes: EntriesAttributes,
 }
 
+#[derive(Debug, Deserialize)]
 pub struct EntriesAttributes {
-  progress: i32,
-  status: EntriesStatus,
+  pub progress: i32,
+  pub status: EntriesStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

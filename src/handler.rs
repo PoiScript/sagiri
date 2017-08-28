@@ -1,6 +1,7 @@
 use error::Error;
 use futures::{Future, future};
 use nom::IResult;
+use serde_json::from_value;
 
 use kitsu::Api;
 use database::Database;
@@ -58,10 +59,25 @@ impl Handler {
     match self.db.get_user(user_id) {
       None => send_message(chat_id, String::from("Unknown command")),
       Some(user) => {
-        send_message(
-          chat_id,
-          format!("your kitsu token is: {}", user.kitsu_token),
-        )
+        Box::new(api.fetch_anime(chat_id, user.kitsu_id).and_then(|(data,
+          included,
+          chat_id)| {
+          let text = match included {
+            None => format!("No Anime :("),
+            Some(animes) => {
+              let mut str = String::new();
+              for (anime, entry) in animes.iter().zip(data.iter()) {
+                str.push_str(&format!(
+                  "{:?}: {}",
+                  entry.attributes.status,
+                  anime.attributes.canonical_title
+                ))
+              }
+              str
+            }
+          };
+          send_message(chat_id, text)
+        }))
       }
     }
   }
