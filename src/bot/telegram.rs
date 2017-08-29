@@ -12,7 +12,7 @@ use serde_json::{from_value, from_slice, to_string};
 
 use types::Client;
 use error::{Error, TelegramError};
-use types::telegram::{Update, Received, Response, GetUpdate};
+use types::telegram::{Message, Update, Received, Response, GetUpdate};
 
 #[derive(Clone)]
 pub struct Bot {
@@ -28,7 +28,7 @@ impl Bot {
     }
   }
 
-  pub fn request<T, S>(&self, method: &str, data: &S) -> Box<Future<Item = T, Error = Error>>
+  fn request<T, S>(&self, method: &str, data: &S) -> Box<Future<Item = T, Error = Error>>
   where
     S: Serialize,
     T: DeserializeOwned + 'static,
@@ -60,6 +60,15 @@ impl Bot {
           })
       },
     ))
+  }
+
+  pub fn send_message(&self, chat_id: i64, text: String) -> Box<Future<Item = Message, Error = Error>> {
+    let message = Message {
+      text: Some(text),
+      chat_id: Some(chat_id),
+      ..Default::default()
+    };
+    self.request::<_, Message>("sendMessage", &message)
   }
 }
 

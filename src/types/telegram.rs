@@ -1,4 +1,3 @@
-use futures::{done, Future};
 use serde_json::Value;
 use error::{Error, TelegramError};
 
@@ -78,16 +77,6 @@ pub struct Message {
   pub text: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub chat_id: Option<i64>,
-}
-
-
-pub fn send_message(chat_id: i64, text: String) -> Box<Future<Item = Message, Error = Error>> {
-  let msg = Message {
-    text: Some(text),
-    chat_id: Some(chat_id),
-    ..Default::default()
-  };
-  Box::new(done::<Message, Error>(Ok(msg)))
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

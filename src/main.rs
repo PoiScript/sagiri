@@ -26,8 +26,8 @@ use futures::Stream;
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
 
-use bot::telegram::UpdateStream;
-use types::telegram::{Received, Message};
+use bot::telegram::{Bot, UpdateStream};
+use types::telegram::Received;
 
 fn main() {
   const TOKEN: &'static str = env!("TOKEN");
@@ -43,19 +43,17 @@ fn main() {
     ))
     .build(&handle);
 
-  let tg_bot = bot::telegram::Bot::new(TOKEN, client.clone());
+  let tg_bot = Bot::new(TOKEN, client.clone());
 
-  let mut handler = handler::Handler::new(client.clone(), TOKEN.to_string());
+  let mut handler = handler::Handler::new(tg_bot.clone(), client.clone(), TOKEN.to_string());
 
-  let work = UpdateStream::new(tg_bot.clone())
+  let work = UpdateStream::new(tg_bot)
     .filter_map(|update| match update {
       Received::Message(msg) => Some(msg),
       _ => None,
     })
     .and_then(|res| handler.handle(res))
-    .and_then(|message| {
-      tg_bot.request::<_, Message>("sendMessage", &message)
-    })
+    .map(|_| ())
     .or_else(|e| {
       error!("Sagiri: {:?}", e);
       Ok::<(), ()>(())
