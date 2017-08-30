@@ -4,6 +4,7 @@
 extern crate log;
 #[macro_use]
 extern crate nom;
+extern crate url;
 extern crate serde;
 extern crate hyper;
 extern crate futures;

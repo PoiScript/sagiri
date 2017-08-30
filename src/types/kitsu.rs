@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde_json::Value;
 
 #[serde(untagged)]
@@ -104,8 +102,8 @@ pub struct StatusCounts {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Links {
-  prev: Option<String>,
-  next: Option<String>,
+  pub prev: Option<String>,
+  pub next: Option<String>,
 }
 
 // TODO

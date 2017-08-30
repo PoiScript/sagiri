@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use url::Url;
+
 use futures::{future, Future, Stream};
 
 use hyper::mime::Mime;
@@ -8,18 +10,22 @@ use hyper::header::ContentType;
 
 use serde_json::{from_value, from_slice};
 
-use types::{Client, Url};
+use types::Client;
 use error::{Error, KitsuError};
 use types::kitsu::{Anime, Entries, Response};
 
 #[derive(Clone)]
 pub struct Api {
+  base: Url,
   client: Client,
 }
 
 impl Api {
   pub fn new(client: Client) -> Api {
-    Api { client: client }
+    Api {
+      base: Url::parse("https://kitsu.io/api/edge").unwrap(),
+      client,
+    }
   }
 
   fn request(&self, req: Request) -> Box<Future<Item = Response, Error = Error>> {
@@ -79,44 +85,44 @@ impl Api {
     user_id: i64,
     offset: i64,
   ) -> Box<Future<Item = (Vec<Entries>, Option<Vec<Anime>>), Error = Error>> {
-    let url = Url::new("library-entries")
-      .params("include", "anime")
-      .params("page[limit]", "5")
-      .params("page[offset]", &offset.to_string())
-      .params("filter[user_id]", &user_id.to_string())
-      .params("filter[status]", "current,planned")
-      .params("fields[libraryEntries]", "progress,status,updatedAt,anime")
-      .params(
+    let mut endpoint = self.base.join("library-entries").unwrap();
+
+    let url = endpoint
+      .query_pairs_mut()
+      .append_pair("include", "anime")
+      .append_pair("page[limit]", "5")
+      .append_pair("page[offset]", &offset.to_string())
+      .append_pair("filter[user_id]", &user_id.to_string())
+      .append_pair("filter[status]", "current,planned")
+      .append_pair("fields[libraryEntries]", "progress,status,updatedAt,anime")
+      .append_pair(
         "fields[anime]",
         "canonicalTitle,titles,episodeCount,slug,subtype",
-      ).get_url();
+      )
+      .finish()
+      .as_str();
 
-    let uri = Uri::from_str(&url).unwrap();
+    let uri = Uri::from_str(url).unwrap();
     let mut req = Request::new(Method::Get, uri);
     req.headers_mut().set(ContentType(
       Mime::from_str("application/vnd.api+json").unwrap(),
     ));
 
-    Box::new(
-      self
-        .request(req)
-        .and_then(|response| match response {
-          Response::Ok { data, included, .. } => {
-            Ok((
-              data.into_iter().map(|v| from_value(v).unwrap()).collect(),
-              included.map(|v| {
-                v.into_iter().map(|v| from_value(v).unwrap()).collect()
-              }),
-            ))
-          }
+    Box::new(self.request(req).and_then(|response| match response {
+      Response::Ok { data, included, .. } => {
+        Ok((
+          data.into_iter().map(|v| from_value(v).unwrap()).collect(),
+          included.map(|v| {
+            v.into_iter().map(|v| from_value(v).unwrap()).collect()
+          }),
+        ))
+      }
 
-          Response::Error { errors } => {
-            return Err(Error::Kitsu(KitsuError {
-              description: format!("{}: {}", errors[0].title, errors[1].detail),
-            }));
-          }
-        })
-//        .and_then(move |(data, included)| Ok((data, included, chat_id))),
-    )
+      Response::Error { errors } => {
+        return Err(Error::Kitsu(KitsuError {
+          description: format!("{}: {}", errors[0].title, errors[1].detail),
+        }));
+      }
+    }))
   }
 }

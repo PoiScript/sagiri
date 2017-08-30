@@ -1,6 +1,7 @@
 use std::error;
 use std::{io, fmt};
 
+use url;
 use hyper;
 use serde_json;
 
@@ -8,6 +9,9 @@ use serde_json;
 pub enum Error {
   // IO Error
   Io(io::Error),
+
+  // Url Error
+  Url(url::ParseError),
 
   // Hyper Error
   Hyper(hyper::Error),
@@ -29,6 +33,7 @@ impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       Error::Io(ref err) => write!(f, "{}", err),
+      Error::Url(ref err) => write!(f, "{}", err),
       Error::Json(ref err) => write!(f, "{}", err),
       Error::Hyper(ref err) => write!(f, "{}", err),
       Error::Kitsu(ref err) => write!(f, "{}", err),
@@ -42,6 +47,7 @@ impl error::Error for Error {
   fn description(&self) -> &str {
     match *self {
       Error::Io(ref err) => err.description(),
+      Error::Url(ref err) => err.description(),
       Error::Json(ref err) => err.description(),
       Error::Hyper(ref err) => err.description(),
       Error::Kitsu(ref err) => err.description(),
@@ -53,6 +59,7 @@ impl error::Error for Error {
   fn cause(&self) -> Option<&error::Error> {
     match *self {
       Error::Io(ref err) => Some(err),
+      Error::Url(ref err) => Some(err),
       Error::Json(ref err) => Some(err),
       Error::Hyper(ref err) => Some(err),
       Error::Kitsu(ref err) => Some(err),
@@ -109,6 +116,7 @@ macro_rules! impl_display {
 }
 
 impl_from!(Error::Io, io::Error);
+impl_from!(Error::Url, url::ParseError);
 impl_from!(Error::Kitsu, KitsuError);
 impl_from!(Error::Hyper, hyper::Error);
 impl_from!(Error::Json, serde_json::Error);
