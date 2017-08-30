@@ -49,13 +49,14 @@ fn main() {
 
   let work = UpdateStream::new(tg_bot)
     .filter_map(|update| match update {
-      Received::Message(msg) => Some(msg),
+      Received::Message(msg) => Some(handler.handle_message(msg)),
+      Received::CallbackQuery(query) => Some(handler.handle_query(query)),
       _ => None,
     })
-    .and_then(|res| handler.handle(res))
+    .and_then(|f| f)
     .map(|_| ())
     .or_else(|e| {
-      error!("Sagiri: {:?}", e);
+      error!("{:?}", e);
       Ok::<(), ()>(())
     })
     .for_each(|_| Ok(()));

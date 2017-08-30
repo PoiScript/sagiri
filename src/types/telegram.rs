@@ -14,7 +14,7 @@ pub struct Update {
   message: Option<Message>,
   channel_post: Option<Value>,
   inline_query: Option<Value>,
-  callback_query: Option<Value>,
+  callback_query: Option<CallbackQuery>,
   edited_message: Option<Value>,
   shipping_query: Option<Value>,
   pre_checkout_query: Option<Value>,
@@ -27,7 +27,7 @@ pub enum Received {
   Message(Message),
   ChannelPost(Value),
   InlineQuery(Value),
-  CallbackQuery(Value),
+  CallbackQuery(CallbackQuery),
   EditedMessage(Value),
   ShippingQuery(Value),
   PreCheckoutQuery(Value),
@@ -77,6 +77,46 @@ pub struct Message {
   pub text: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub chat_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub reply_markup: Option<ReplyMarkup>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub inline_message_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReplyMarkup {
+  InlineKeyboard(Vec<Vec<InlineKeyboardButton>>),
+  ReplyKeyboardMarkup,
+  ReplyKeyboardRemove,
+  ForceReply,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct InlineKeyboardButton {
+  pub text: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub url: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub callback_data: Option<String>,
+}
+
+impl InlineKeyboardButton {
+  pub fn with_url(text: String, url: String) -> InlineKeyboardButton {
+    InlineKeyboardButton {
+      text: text,
+      url: Some(url),
+      callback_data: None,
+    }
+  }
+
+  pub fn with_data(text: String, data: String) -> InlineKeyboardButton {
+    InlineKeyboardButton {
+      text: text,
+      url: None,
+      callback_data: Some(data),
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -107,6 +147,15 @@ pub enum ChatType {
   Group,
   SuperGroup,
   Channel,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CallbackQuery {
+  pub id: String,
+  pub from: User,
+  pub data: Option<String>,
+  pub message: Option<Message>,
+  pub inline_message_id: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]

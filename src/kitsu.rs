@@ -76,11 +76,13 @@ impl Api {
 
   pub fn fetch_anime(
     &self,
-    chat_id: i64,
     user_id: i64,
-  ) -> Box<Future<Item = (Vec<Entries>, Option<Vec<Anime>>, i64), Error = Error>> {
+    offset: i64,
+  ) -> Box<Future<Item = (Vec<Entries>, Option<Vec<Anime>>), Error = Error>> {
     let url = Url::new("library-entries")
       .params("include", "anime")
+      .params("page[limit]", "5")
+      .params("page[offset]", &offset.to_string())
       .params("filter[user_id]", &user_id.to_string())
       .params("filter[status]", "current,planned")
       .params("fields[libraryEntries]", "progress,status,updatedAt,anime")
@@ -114,7 +116,7 @@ impl Api {
             }));
           }
         })
-        .and_then(move |(data, included)| Ok((data, included, chat_id))),
+//        .and_then(move |(data, included)| Ok((data, included, chat_id))),
     )
   }
 }

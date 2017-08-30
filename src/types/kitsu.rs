@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde_json::Value;
 
 #[serde(untagged)]
@@ -7,6 +9,7 @@ pub enum Response {
     data: Vec<Value>,
     included: Option<Vec<Value>>,
     meta: Option<Meta>,
+    links: Links,
   },
   Error { errors: Vec<ApiError> },
 }
@@ -97,6 +100,12 @@ pub struct StatusCounts {
   on_hold: i32,
   planned: i32,
   completed: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Links {
+  prev: Option<String>,
+  next: Option<String>,
 }
 
 // TODO

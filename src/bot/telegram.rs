@@ -11,8 +11,8 @@ use serde::de::DeserializeOwned;
 use serde_json::{from_value, from_slice, to_string};
 
 use types::Client;
+use types::telegram::*;
 use error::{Error, TelegramError};
-use types::telegram::{Message, Update, Received, Response, GetUpdate};
 
 #[derive(Clone)]
 pub struct Bot {
@@ -62,13 +62,49 @@ impl Bot {
     ))
   }
 
-  pub fn send_message(&self, chat_id: i64, text: String) -> Box<Future<Item = Message, Error = Error>> {
+  pub fn send_message(
+    &self,
+    chat_id: i64,
+    text: String,
+  ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
       text: Some(text),
       chat_id: Some(chat_id),
       ..Default::default()
     };
     self.request::<_, Message>("sendMessage", &message)
+  }
+
+  pub fn send_inline_keyboard(
+    &self,
+    chat_id: i64,
+    text: String,
+    buttons: Vec<Vec<InlineKeyboardButton>>,
+  ) -> Box<Future<Item = Message, Error = Error>> {
+    let message = Message {
+      text: Some(text),
+      chat_id: Some(chat_id),
+      reply_markup: Some(ReplyMarkup::InlineKeyboard(buttons)),
+      ..Default::default()
+    };
+    self.request::<_, Message>("sendMessage", &message)
+  }
+
+  pub fn edit_inline_keyboard(
+    &self,
+    msg_id: i64,
+    chat_id: i64,
+    text: String,
+    buttons: Vec<Vec<InlineKeyboardButton>>,
+  ) -> Box<Future<Item = Message, Error = Error>> {
+    let message = Message {
+      text: Some(text),
+      chat_id: Some(chat_id),
+      message_id: Some(msg_id),
+      reply_markup: Some(ReplyMarkup::InlineKeyboard(buttons)),
+      ..Default::default()
+    };
+    self.request::<_, Message>("editMessageText", &message)
   }
 }
 
