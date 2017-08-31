@@ -12,7 +12,7 @@ use serde_json::{from_value, from_slice};
 
 use types::Client;
 use error::{Error, KitsuError};
-use types::kitsu::{Anime, Entries, Response};
+use types::kitsu::{Anime, Entries, Links, Response};
 
 #[derive(Clone)]
 pub struct Api {
@@ -23,7 +23,7 @@ pub struct Api {
 impl Api {
   pub fn new(client: Client) -> Api {
     Api {
-      base: Url::parse("https://kitsu.io/api/edge").unwrap(),
+      base: Url::parse("https://kitsu.io/api/edge/").unwrap(),
       client,
     }
   }
@@ -84,7 +84,7 @@ impl Api {
     &self,
     user_id: i64,
     offset: i64,
-  ) -> Box<Future<Item = (Vec<Entries>, Option<Vec<Anime>>), Error = Error>> {
+  ) -> Box<Future<Item = (Vec<Entries>, Option<Vec<Anime>>, Links), Error = Error>> {
     let mut endpoint = self.base.join("library-entries").unwrap();
 
     let url = endpoint
@@ -109,12 +109,18 @@ impl Api {
     ));
 
     Box::new(self.request(req).and_then(|response| match response {
-      Response::Ok { data, included, .. } => {
+      Response::Ok {
+        data,
+        included,
+        links,
+        ..
+      } => {
         Ok((
           data.into_iter().map(|v| from_value(v).unwrap()).collect(),
           included.map(|v| {
             v.into_iter().map(|v| from_value(v).unwrap()).collect()
           }),
+          links,
         ))
       }
 

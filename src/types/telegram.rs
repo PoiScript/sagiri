@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+
+use url::Url;
 use serde_json::Value;
 use error::{Error, TelegramError};
 
@@ -102,7 +105,7 @@ pub struct InlineKeyboardButton {
 }
 
 impl InlineKeyboardButton {
-  pub fn with_url(text: String, url: String) -> InlineKeyboardButton {
+  fn with_url(text: String, url: String) -> InlineKeyboardButton {
     InlineKeyboardButton {
       text: text,
       url: Some(url),
@@ -110,12 +113,46 @@ impl InlineKeyboardButton {
     }
   }
 
-  pub fn with_data(text: String, data: String) -> InlineKeyboardButton {
+  fn with_data(text: String, data: String) -> InlineKeyboardButton {
     InlineKeyboardButton {
       text: text,
       url: None,
       callback_data: Some(data),
     }
+  }
+
+  pub fn paginator(
+    kitsu_id: i64,
+    prev: Option<String>,
+    next: Option<String>,
+  ) -> Vec<InlineKeyboardButton> {
+    fn get_button(url: Option<String>, kitsu_id: i64, text: &str) -> Option<InlineKeyboardButton> {
+      url
+        .map_or(None, |x| match Url::parse(&x) {
+          Ok(url) => Some(url),
+          Err(_) => None,
+        })
+        .map_or(None, |url| {
+          url
+            .query_pairs()
+            .find(|&(ref key, _)| key == &Cow::Borrowed("page[offset]"))
+            .map_or(None, |(_, offset)| Some(offset))
+            .map(|offset| {
+              InlineKeyboardButton::with_data(
+                format!("{}", text),
+                format!("/page/{}/{}/", kitsu_id, offset),
+              )
+            })
+        })
+    }
+    let mut buttons = Vec::new();
+    if let Some(button) = get_button(prev, kitsu_id, "Prev") {
+      buttons.push(button)
+    }
+    if let Some(button) = get_button(next, kitsu_id, "Next") {
+      buttons.push(button)
+    }
+    buttons
   }
 }
 

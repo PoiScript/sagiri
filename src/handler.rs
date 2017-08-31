@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use nom::IResult;
-use futures::Future;
+use futures::{done, Future};
 
 use bot::telegram::Bot;
 use kitsu::Api;
@@ -18,7 +18,7 @@ enum Command {
 
 #[derive(Debug)]
 pub enum QueryCommand {
-  Page { user_id: i64, offset: i64 },
+  Page { kitsu_id: i64, offset: i64 },
 }
 
 named!(parse_message<&str, Command>,
@@ -32,9 +32,9 @@ named!(parse_query<&str, QueryCommand>,
   alt!(
     do_parse!(
       tag!("/page/") >>
-      user_id: map_res!(take_until_and_consume!("/"), i64::from_str)  >>
+      kitsu_id: map_res!(take_until_and_consume!("/"), i64::from_str)  >>
       offset: map_res!(take_until!("/"), i64::from_str)  >>
-      (QueryCommand::Page{ user_id, offset })
+      (QueryCommand::Page{ kitsu_id, offset })
     )
   )
 );
@@ -86,16 +86,16 @@ impl Handler {
         match parse_query(&data) {
           IResult::Done(_, command) => {
             match command {
-              QueryCommand::Page { user_id, offset } => self.page(user_id, msg_id, chat_id, offset),
+              QueryCommand::Page { kitsu_id, offset } => self.page(kitsu_id, msg_id, chat_id, offset),
             }
           }
           _ => self.bot.send_message(chat_id, format!("Unknown Command.")),
         }
       }
       None => {
-        ::futures::done::<_, Error>(Err(Error::Telegram(TelegramError {
+        Box::new(done::<_, Error>(Err(Error::Telegram(TelegramError {
           description: "Outdated Message.".to_owned(),
-        }))).boxed()
+        }))))
       }
     }
   }
@@ -112,38 +112,29 @@ impl Handler {
     let bot = self.bot.clone();
     match self.db.get_user(user_id) {
       None => bot.send_message(chat_id, String::from("Unknown command")),
-      Some(user) => Box::new(api.fetch_anime(user.kitsu_id, 0).and_then(
-        move |(data, included)| {
-          let buttons = vec![
-            vec![
-              InlineKeyboardButton::with_data(
-                format!("Prior"),
-                format!("/page/{}/0/", user.kitsu_id)
-              ),
-              InlineKeyboardButton::with_data(
-                format!("Next"),
-                format!("/page/{}/10/", user.kitsu_id)
-              ),
-            ],
-          ];
+      Some(user) => Box::new(api.fetch_anime(user.kitsu_id, 0).and_then(move |(data,
+             included,
+             links)| {
+        let buttons = vec![
+          InlineKeyboardButton::paginator(user.kitsu_id, links.prev, links.next),
+        ];
 
-          let text = match included {
-            None => format!("No Anime :("),
-            Some(animes) => {
-              let mut str = String::new();
-              for (anime, entry) in animes.iter().zip(data.iter()) {
-                str.push_str(&format!(
-                  "{:?}: {}\n",
-                  entry.attributes.status,
-                  anime.attributes.canonical_title
-                ))
-              }
-              str
+        let text = match included {
+          None => format!("No Anime :("),
+          Some(animes) => {
+            let mut str = String::new();
+            for (anime, entry) in animes.iter().zip(data.iter()) {
+              str.push_str(&format!(
+                "{:?}: {}\n",
+                entry.attributes.status,
+                anime.attributes.canonical_title
+              ))
             }
-          };
-          bot.send_inline_keyboard(chat_id, text, buttons)
-        },
-      )),
+            str
+          }
+        };
+        bot.send_inline_keyboard(chat_id, text, buttons)
+      })),
     }
   }
 
@@ -156,14 +147,19 @@ impl Handler {
 
   fn page(
     &self,
-    user_id: i64,
+    kitsu_id: i64,
     msg_id: i64,
     chat_id: i64,
     offset: i64,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let bot = self.bot.clone();
-    Box::new(self.api.fetch_anime(user_id, offset).and_then(move |(data,
-           included)| {
+    Box::new(self.api.fetch_anime(kitsu_id, offset).and_then(move |(data,
+           included,
+           links)| {
+      let buttons = vec![
+        InlineKeyboardButton::paginator(kitsu_id, links.prev, links.next),
+      ];
+
       let text = match included {
         None => format!("No Anime :("),
         Some(animes) => {
@@ -178,13 +174,6 @@ impl Handler {
           text
         }
       };
-      let buttons =
-        vec![
-          vec![
-            InlineKeyboardButton::with_data(format!("Prior"), format!("/page/{}/0/", user_id)),
-            InlineKeyboardButton::with_data(format!("Next"), format!("/page/{}/10/", user_id)),
-          ],
-        ];
       bot.edit_inline_keyboard(msg_id, chat_id, text, buttons)
     }))
   }
