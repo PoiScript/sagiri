@@ -84,7 +84,12 @@ impl Api {
     &self,
     user_id: i64,
     offset: i64,
-  ) -> Box<Future<Item = (Vec<Entries>, Option<Vec<Anime>>, Links), Error = Error>> {
+  ) -> Box<
+    Future<
+      Item = (Option<String>, Option<String>, Option<(Vec<Entries>, Vec<Anime>)>),
+      Error = Error,
+    >,
+  > {
     let mut endpoint = self.base.join("library-entries").unwrap();
 
     let url = endpoint
@@ -108,27 +113,30 @@ impl Api {
       Mime::from_str("application/vnd.api+json").unwrap(),
     ));
 
-    Box::new(self.request(req).and_then(|response| match response {
-      Response::Ok {
-        data,
-        included,
-        links,
-        ..
-      } => {
-        Ok((
-          data.into_iter().map(|v| from_value(v).unwrap()).collect(),
-          included.map(|v| {
-            v.into_iter().map(|v| from_value(v).unwrap()).collect()
-          }),
-          links,
-        ))
-      }
+    Box::new(
+      self
+        .request(req)
+        .and_then(|response| match response {
+          Response::Ok { data, included, links, .. } => {
+            Ok((
+              data.into_iter().map(|v| from_value(v).unwrap()).collect(),
+              included.map(|v| {
+                v.into_iter().map(|v| from_value(v).unwrap()).collect()
+              }),
+              links,
+            ))
+          }
 
-      Response::Error { errors } => {
-        return Err(Error::Kitsu(KitsuError {
-          description: format!("{}: {}", errors[0].title, errors[1].detail),
-        }));
-      }
-    }))
+          Response::Error { errors } => {
+            return Err(Error::Kitsu(KitsuError {
+              description: format!("{}: {}", errors[0].title, errors[1].detail),
+            }));
+          }
+        })
+        .and_then(|(entries, included, links)| match included {
+          None => Ok((None, None, None)),
+          Some(animes) => Ok((links.prev, links.next, Some((entries, animes)))),
+        }),
+    )
   }
 }

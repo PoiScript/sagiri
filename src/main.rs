@@ -9,7 +9,6 @@ extern crate serde;
 extern crate hyper;
 extern crate futures;
 extern crate hyper_tls;
-extern crate env_logger;
 extern crate tokio_core;
 extern crate serde_json;
 #[macro_use]
@@ -32,8 +31,6 @@ use types::telegram::Received;
 
 fn main() {
   const TOKEN: &'static str = env!("TOKEN");
-
-  env_logger::init().expect("error/env-logger");
 
   let mut core = Core::new().expect("error/init-core");
   let handle = core.handle();

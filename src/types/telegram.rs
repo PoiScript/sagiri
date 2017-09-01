@@ -84,6 +84,14 @@ pub struct Message {
   pub reply_markup: Option<ReplyMarkup>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub inline_message_id: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub parse_mode: Option<ParseMode>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ParseMode {
+  HTML,
+  Markdown,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -121,11 +129,8 @@ impl InlineKeyboardButton {
     }
   }
 
-  pub fn paginator(
-    kitsu_id: i64,
-    prev: Option<String>,
-    next: Option<String>,
-  ) -> Vec<InlineKeyboardButton> {
+  pub fn paginator(kitsu_id: i64, prev: Option<String>, next: Option<String>)
+    -> Vec<InlineKeyboardButton> {
     fn get_button(url: Option<String>, kitsu_id: i64, text: &str) -> Option<InlineKeyboardButton> {
       url
         .map_or(None, |x| match Url::parse(&x) {

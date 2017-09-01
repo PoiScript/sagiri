@@ -66,10 +66,12 @@ impl Bot {
     &self,
     chat_id: i64,
     text: String,
+    parse_mode: Option<ParseMode>,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
       text: Some(text),
       chat_id: Some(chat_id),
+      parse_mode: parse_mode,
       ..Default::default()
     };
     self.request::<_, Message>("sendMessage", &message)
@@ -79,11 +81,13 @@ impl Bot {
     &self,
     chat_id: i64,
     text: String,
+    parse_mode: Option<ParseMode>,
     buttons: Vec<Vec<InlineKeyboardButton>>,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
       text: Some(text),
       chat_id: Some(chat_id),
+      parse_mode: parse_mode,
       reply_markup: Some(ReplyMarkup::InlineKeyboard(buttons)),
       ..Default::default()
     };

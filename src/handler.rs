@@ -7,6 +7,7 @@ use bot::telegram::Bot;
 use kitsu::Api;
 use error::{Error, TelegramError};
 use types::Client;
+use types::kitsu::*;
 use types::telegram::*;
 use database::Database;
 
@@ -59,6 +60,8 @@ impl Handler {
     let user_id = msg.from.unwrap().id;
     let text = msg.text.unwrap_or(String::new());
 
+    info!("received message: '{}' from {}, in {}", text, user_id, text);
+
     return match parse_message(&text) {
       IResult::Done(_, command) => {
         match command {
@@ -77,6 +80,8 @@ impl Handler {
     let user_id = query.from.id;
     let data = query.data.unwrap_or(String::new());
 
+    info!("received query: '{}' from {}", data, user_id);
+
     match query.message {
       Some(msg) => {
         let msg_id = msg.message_id.unwrap();
@@ -86,10 +91,18 @@ impl Handler {
         match parse_query(&data) {
           IResult::Done(_, command) => {
             match command {
-              QueryCommand::Page { kitsu_id, offset } => self.page(kitsu_id, msg_id, chat_id, offset),
+              QueryCommand::Page { kitsu_id, offset } => {
+                self.page(kitsu_id, msg_id, chat_id, offset)
+              }
             }
           }
-          _ => self.bot.send_message(chat_id, format!("Unknown Command.")),
+          _ => {
+            self.bot.send_message(
+              chat_id,
+              format!("Unknown Command."),
+              None,
+            )
+          }
         }
       }
       None => {
@@ -104,6 +117,7 @@ impl Handler {
     self.bot.send_message(
       chat_id,
       String::from("Unknown command."),
+      None,
     )
   }
 
@@ -111,37 +125,28 @@ impl Handler {
     let api = self.api.clone();
     let bot = self.bot.clone();
     match self.db.get_user(user_id) {
-      None => bot.send_message(chat_id, String::from("Unknown command")),
-      Some(user) => Box::new(api.fetch_anime(user.kitsu_id, 0).and_then(move |(data,
-             included,
-             links)| {
-        let buttons = vec![
-          InlineKeyboardButton::paginator(user.kitsu_id, links.prev, links.next),
-        ];
-
-        let text = match included {
-          None => format!("No Anime :("),
-          Some(animes) => {
-            let mut str = String::new();
-            for (anime, entry) in animes.iter().zip(data.iter()) {
-              str.push_str(&format!(
-                "{:?}: {}\n",
-                entry.attributes.status,
-                anime.attributes.canonical_title
-              ))
-            }
-            str
-          }
-        };
-        bot.send_inline_keyboard(chat_id, text, buttons)
-      })),
+      None => bot.send_message(chat_id, String::from("Unknown command"), None),
+      Some(user) => Box::new(
+        api
+          .fetch_anime(user.kitsu_id, 0)
+          .and_then(move |(prev, next, pairs)| {
+            Ok(parse_anime(user.kitsu_id, prev, next, pairs))
+          })
+          .and_then(move |(text, buttons)| {
+            bot.send_inline_keyboard(chat_id, text, Some(ParseMode::HTML), buttons)
+          }),
+      ),
     }
   }
 
   fn update(&mut self, chat_id: i64) -> Box<Future<Item = Message, Error = Error>> {
     let bot = self.bot.clone();
     Box::new(self.db.fetch().and_then(move |users| {
-      bot.send_message(chat_id, format!("Successful update: {} users", users.len()))
+      bot.send_message(
+        chat_id,
+        format!("<pre>Successful update: {} user(s)<pre>", users.len()),
+        Some(ParseMode::HTML),
+      )
     }))
   }
 
@@ -153,28 +158,44 @@ impl Handler {
     offset: i64,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let bot = self.bot.clone();
-    Box::new(self.api.fetch_anime(kitsu_id, offset).and_then(move |(data,
-           included,
-           links)| {
-      let buttons = vec![
-        InlineKeyboardButton::paginator(kitsu_id, links.prev, links.next),
-      ];
-
-      let text = match included {
-        None => format!("No Anime :("),
-        Some(animes) => {
-          let mut text = String::new();
-          for (anime, entry) in animes.iter().zip(data.iter()) {
-            text.push_str(&format!(
-              "{:?}: {}\n",
-              entry.attributes.status,
-              anime.attributes.canonical_title
-            ))
-          }
-          text
-        }
-      };
-      bot.edit_inline_keyboard(msg_id, chat_id, text, buttons)
-    }))
+    Box::new(
+      self
+        .api
+        .fetch_anime(kitsu_id, offset)
+        .and_then(move |(prev, next, pairs)| {
+          Ok(parse_anime(kitsu_id, prev, next, pairs))
+        })
+        .and_then(move |(text, buttons)| {
+          bot.edit_inline_keyboard(msg_id, chat_id, text, buttons)
+        }),
+    )
   }
+}
+
+fn parse_anime(
+  kitsu_id: i64,
+  prev: Option<String>,
+  next: Option<String>,
+  pairs: Option<(Vec<Entries>, Vec<Anime>)>,
+) -> (String, Vec<Vec<InlineKeyboardButton>>) {
+  let buttons = vec![InlineKeyboardButton::paginator(kitsu_id, prev, next)];
+
+  let mut text = String::new();
+
+  match pairs {
+    None => text = format!("No Anime :("),
+    Some((entries, animes)) => {
+      for (entry, anime) in entries.iter().zip(animes.iter()) {
+        text.push_str(&format!(
+          "{}\n{:?}({}/{})\n",
+          anime.attributes.canonical_title,
+          entry.attributes.status,
+          entry.attributes.progress,
+          anime.attributes.episode_count.unwrap_or(99),
+        ))
+      }
+    }
+  };
+
+  (text, buttons)
 }
