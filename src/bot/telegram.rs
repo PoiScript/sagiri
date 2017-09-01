@@ -55,7 +55,7 @@ impl Bot {
             Response::Ok { result } => from_value(result).map_err(|e| e.into()),
 
             Response::Error { description } => {
-              return Err(Error::Telegram(TelegramError { description }));
+              Err(Error::Telegram(TelegramError { description }))
             }
           })
       },
@@ -67,28 +67,13 @@ impl Bot {
     chat_id: i64,
     text: String,
     parse_mode: Option<ParseMode>,
+    buttons: Option<Vec<Vec<InlineKeyboardButton>>>,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
       text: Some(text),
       chat_id: Some(chat_id),
       parse_mode: parse_mode,
-      ..Default::default()
-    };
-    self.request::<_, Message>("sendMessage", &message)
-  }
-
-  pub fn send_inline_keyboard(
-    &self,
-    chat_id: i64,
-    text: String,
-    parse_mode: Option<ParseMode>,
-    buttons: Vec<Vec<InlineKeyboardButton>>,
-  ) -> Box<Future<Item = Message, Error = Error>> {
-    let message = Message {
-      text: Some(text),
-      chat_id: Some(chat_id),
-      parse_mode: parse_mode,
-      reply_markup: Some(ReplyMarkup::InlineKeyboard(buttons)),
+      reply_markup: buttons.map(|b| ReplyMarkup::InlineKeyboard(b)),
       ..Default::default()
     };
     self.request::<_, Message>("sendMessage", &message)
@@ -99,13 +84,15 @@ impl Bot {
     msg_id: i64,
     chat_id: i64,
     text: String,
-    buttons: Vec<Vec<InlineKeyboardButton>>,
+    parse_mode: Option<ParseMode>,
+    buttons: Option<Vec<Vec<InlineKeyboardButton>>>,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
       text: Some(text),
       chat_id: Some(chat_id),
       message_id: Some(msg_id),
-      reply_markup: Some(ReplyMarkup::InlineKeyboard(buttons)),
+      parse_mode: parse_mode,
+      reply_markup: buttons.map(|b| ReplyMarkup::InlineKeyboard(b)),
       ..Default::default()
     };
     self.request::<_, Message>("editMessageText", &message)

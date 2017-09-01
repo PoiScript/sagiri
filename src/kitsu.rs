@@ -12,7 +12,7 @@ use serde_json::{from_value, from_slice};
 
 use types::Client;
 use error::{Error, KitsuError};
-use types::kitsu::{Anime, Entries, Links, Response};
+use types::kitsu::{Anime, Entries, Response};
 
 #[derive(Clone)]
 pub struct Api {
@@ -128,14 +128,57 @@ impl Api {
           }
 
           Response::Error { errors } => {
-            return Err(Error::Kitsu(KitsuError {
+            Err(Error::Kitsu(KitsuError {
               description: format!("{}: {}", errors[0].title, errors[1].detail),
-            }));
+            }))
           }
         })
         .and_then(|(entries, included, links)| match included {
           None => Ok((None, None, None)),
           Some(animes) => Ok((links.prev, links.next, Some((entries, animes)))),
+        }),
+    )
+  }
+
+  pub fn get_anime(
+    &self,
+    user_id: i64,
+    anime_id: i64,
+  ) -> Box<Future<Item = Option<(Entries, Anime)>, Error = Error>> {
+    let mut endpoint = self.base.join("library-entries").unwrap();
+
+    let url = endpoint
+      .query_pairs_mut()
+      .append_pair("include", "anime")
+      .append_pair("filter[user_id]", &user_id.to_string())
+      .append_pair("filter[anime_id]", &anime_id.to_string())
+      .finish()
+      .as_str();
+
+    let uri = Uri::from_str(url).unwrap();
+    let mut req = Request::new(Method::Get, uri);
+    req.headers_mut().set(ContentType(
+      Mime::from_str("application/vnd.api+json").unwrap(),
+    ));
+
+    Box::new(
+      self
+        .request(req)
+        .and_then(|response| match response {
+          Response::Ok { mut data, included, .. } => {
+            Ok((data.pop(), included.map_or(None, |mut v| v.pop())))
+          }
+          Response::Error { errors } => {
+            Err(Error::Kitsu(KitsuError {
+              description: format!("{}: {}", errors[0].title, errors[1].detail),
+            }))
+          }
+        })
+        .and_then(|(entry, anime)| match (entry, anime) {
+          (Some(entry), Some(anime)) => Ok(Some(
+            (from_value(entry).unwrap(), from_value(anime).unwrap()),
+          )),
+          _ => Ok(None),
         }),
     )
   }

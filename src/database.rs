@@ -51,9 +51,7 @@ impl Database {
               Ok(data)
             }
 
-            Response::Error { error } => {
-              return Err(Error::Database(DatabaseError { description: error }));
-            }
+            Response::Error { error } => Err(Error::Database(DatabaseError { description: error })),
           })
       },
     ))

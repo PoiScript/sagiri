@@ -20,3 +20,15 @@ pub struct User {
   pub telegram_id: i64,
   pub kitsu_token: String,
 }
+
+#[derive(Debug)]
+pub enum MsgCommand {
+  List,
+  Update,
+}
+
+#[derive(Debug)]
+pub enum QueryCommand {
+  Offset { kitsu_id: i64, offset: i64 },
+  Detail { kitsu_id: i64, anime_id: i64 },
+}

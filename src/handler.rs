@@ -1,44 +1,13 @@
-use std::str::FromStr;
-
 use nom::IResult;
 use futures::{done, Future};
 
 use bot::telegram::Bot;
 use kitsu::Api;
 use error::{Error, TelegramError};
-use types::Client;
-use types::kitsu::*;
-use types::telegram::*;
+use types::{Client, MsgCommand, QueryCommand};
+use utils::*;
+use types::telegram::{Message, CallbackQuery, ParseMode};
 use database::Database;
-
-#[derive(Debug)]
-enum Command {
-  List,
-  Update,
-}
-
-#[derive(Debug)]
-pub enum QueryCommand {
-  Page { kitsu_id: i64, offset: i64 },
-}
-
-named!(parse_message<&str, Command>,
-  alt!(
-    map!(tag!("/list"), |_| Command::List) |
-    map!(tag!("/update"), |_| Command::Update)
-  )
-);
-
-named!(parse_query<&str, QueryCommand>,
-  alt!(
-    do_parse!(
-      tag!("/page/") >>
-      kitsu_id: map_res!(take_until_and_consume!("/"), i64::from_str)  >>
-      offset: map_res!(take_until!("/"), i64::from_str)  >>
-      (QueryCommand::Page{ kitsu_id, offset })
-    )
-  )
-);
 
 pub struct Handler {
   api: Api,
@@ -62,15 +31,15 @@ impl Handler {
 
     info!("received message: '{}' from {}, in {}", text, user_id, text);
 
-    return match parse_message(&text) {
+    match parse_message(&text) {
       IResult::Done(_, command) => {
         match command {
-          Command::List => self.list(user_id, chat_id),
-          Command::Update => self.update(chat_id),
+          MsgCommand::List => self.list(user_id, chat_id),
+          MsgCommand::Update => self.update(chat_id),
         }
       }
       _ => self.unknown(chat_id),
-    };
+    }
   }
 
   pub fn handle_query(
@@ -86,23 +55,19 @@ impl Handler {
       Some(msg) => {
         let msg_id = msg.message_id.unwrap();
         let chat_id = msg.chat.unwrap().id;
-        let date = msg.date.unwrap();
 
         match parse_query(&data) {
           IResult::Done(_, command) => {
             match command {
-              QueryCommand::Page { kitsu_id, offset } => {
-                self.page(kitsu_id, msg_id, chat_id, offset)
+              QueryCommand::Offset { kitsu_id, offset } => {
+                self.offset(msg_id, chat_id, kitsu_id, offset)
+              }
+              QueryCommand::Detail { kitsu_id, anime_id } => {
+                self.detail(msg_id, chat_id, kitsu_id, anime_id)
               }
             }
           }
-          _ => {
-            self.bot.send_message(
-              chat_id,
-              format!("Unknown Command."),
-              None,
-            )
-          }
+          _ => self.unknown(chat_id),
         }
       }
       None => {
@@ -118,22 +83,30 @@ impl Handler {
       chat_id,
       String::from("Unknown command."),
       None,
+      None,
     )
   }
 
   fn list(&mut self, user_id: i64, chat_id: i64) -> Box<Future<Item = Message, Error = Error>> {
-    let api = self.api.clone();
     let bot = self.bot.clone();
     match self.db.get_user(user_id) {
-      None => bot.send_message(chat_id, String::from("Unknown command"), None),
+      None => {
+        bot.send_message(
+          chat_id,
+          format!("Non-registered user: {}", user_id),
+          None,
+          None,
+        )
+      }
       Some(user) => Box::new(
-        api
+        self
+          .api
           .fetch_anime(user.kitsu_id, 0)
           .and_then(move |(prev, next, pairs)| {
-            Ok(parse_anime(user.kitsu_id, prev, next, pairs))
+            Ok(parse_entry(user.kitsu_id, prev, next, pairs))
           })
           .and_then(move |(text, buttons)| {
-            bot.send_inline_keyboard(chat_id, text, Some(ParseMode::HTML), buttons)
+            bot.send_message(chat_id, text, Some(ParseMode::HTML), Some(buttons))
           }),
       ),
     }
@@ -144,17 +117,18 @@ impl Handler {
     Box::new(self.db.fetch().and_then(move |users| {
       bot.send_message(
         chat_id,
-        format!("<pre>Successful update: {} user(s)<pre>", users.len()),
+        format!("<pre>Successful update: {} user(s)</pre>", users.len()),
         Some(ParseMode::HTML),
+        None,
       )
     }))
   }
 
-  fn page(
+  fn offset(
     &self,
-    kitsu_id: i64,
     msg_id: i64,
     chat_id: i64,
+    kitsu_id: i64,
     offset: i64,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let bot = self.bot.clone();
@@ -163,39 +137,30 @@ impl Handler {
         .api
         .fetch_anime(kitsu_id, offset)
         .and_then(move |(prev, next, pairs)| {
-          Ok(parse_anime(kitsu_id, prev, next, pairs))
+          Ok(parse_entry(kitsu_id, prev, next, pairs))
         })
         .and_then(move |(text, buttons)| {
-          bot.edit_inline_keyboard(msg_id, chat_id, text, buttons)
+          bot.edit_inline_keyboard(msg_id, chat_id, text, Some(ParseMode::HTML), Some(buttons))
         }),
     )
   }
-}
 
-fn parse_anime(
-  kitsu_id: i64,
-  prev: Option<String>,
-  next: Option<String>,
-  pairs: Option<(Vec<Entries>, Vec<Anime>)>,
-) -> (String, Vec<Vec<InlineKeyboardButton>>) {
-  let buttons = vec![InlineKeyboardButton::paginator(kitsu_id, prev, next)];
-
-  let mut text = String::new();
-
-  match pairs {
-    None => text = format!("No Anime :("),
-    Some((entries, animes)) => {
-      for (entry, anime) in entries.iter().zip(animes.iter()) {
-        text.push_str(&format!(
-          "{}\n{:?}({}/{})\n",
-          anime.attributes.canonical_title,
-          entry.attributes.status,
-          entry.attributes.progress,
-          anime.attributes.episode_count.unwrap_or(99),
-        ))
-      }
-    }
-  };
-
-  (text, buttons)
+  fn detail(
+    &self,
+    msg_id: i64,
+    chat_id: i64,
+    kitsu_id: i64,
+    anime_id: i64,
+  ) -> Box<Future<Item = Message, Error = Error>> {
+    let bot = self.bot.clone();
+    Box::new(
+      self
+        .api
+        .get_anime(kitsu_id, anime_id)
+        .and_then(move |pair| Ok(parse_anime(kitsu_id, pair)))
+        .and_then(move |(text, buttons)| {
+          bot.edit_inline_keyboard(msg_id, chat_id, text, Some(ParseMode::HTML), Some(buttons))
+        }),
+    )
+  }
 }

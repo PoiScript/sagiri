@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde_json::Value;
 
 #[serde(untagged)]
@@ -29,9 +31,7 @@ pub enum Type {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Anime {
-  id: String,
-  #[serde(rename = "type")]
-  kind: Type,
+  pub id: String,
   pub attributes: AnimeAttributes,
 }
 
@@ -41,29 +41,39 @@ pub struct AnimeAttributes {
   pub canonical_title: String,
   pub episode_count: Option<u32>,
   pub subtype: Option<String>,
+  pub titles: AnimeTitles,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AnimeTitles {
+  pub ja_jp: Option<String>,
+}
+
+impl fmt::Display for AnimeTitles {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self.ja_jp {
+      Some(ref title) => write!(f, "(<i>{}</i>)", title),
+      None => write!(f, ""),
+    }
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
   id: i32,
-  #[serde(rename = "type")]
-  kind: Type,
-  attributes: UserAttributes,
+  pub attributes: UserAttributes,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserAttributes {
-  name: String,
-  life_spent_on_anime: i32,
-  title_language_preference: String,
+  pub name: String,
+  pub life_spent_on_anime: i32,
+  pub title_language_preference: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Entries {
-  id: String,
-  #[serde(rename = "type")]
-  kind: Type,
   pub attributes: EntriesAttributes,
 }
 
@@ -86,18 +96,18 @@ pub enum EntriesStatus {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
-  count: i32,
-  status_counts: StatusCounts,
+  pub count: i32,
+  pub status_counts: StatusCounts,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusCounts {
-  current: i32,
-  dropped: i32,
-  on_hold: i32,
-  planned: i32,
-  completed: i32,
+  current: Option<i32>,
+  dropped: Option<i32>,
+  on_hold: Option<i32>,
+  planned: Option<i32>,
+  completed: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
