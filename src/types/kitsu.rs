@@ -1,4 +1,5 @@
 use std::fmt;
+use std::default::Default;
 
 use serde_json::Value;
 
@@ -40,8 +41,46 @@ pub struct Anime {
 pub struct AnimeAttributes {
   pub canonical_title: String,
   pub episode_count: Option<u32>,
-  pub subtype: Option<String>,
+  pub status: Option<AnimeStatus>,
+  pub subtype: Option<AnimeSubtype>,
   pub titles: AnimeTitles,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum AnimeSubtype {
+  ONA,
+  OVA,
+  TV,
+  #[serde(rename = "movie")]
+  Movie,
+  #[serde(rename = "music")]
+  Music,
+  #[serde(rename = "special")]
+  Special,
+  Unknown,
+}
+
+impl Default for AnimeSubtype {
+  fn default() -> AnimeSubtype {
+    AnimeSubtype::Unknown
+  }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AnimeStatus {
+  Current,
+  Finished,
+  Tba,
+  Unreleased,
+  Upcoming,
+  Unknown,
+}
+
+impl Default for AnimeStatus {
+  fn default() -> AnimeStatus {
+    AnimeStatus::Unknown
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

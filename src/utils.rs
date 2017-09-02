@@ -52,7 +52,7 @@ pub fn parse_anime(
 ) -> (String, Vec<Vec<InlineKeyboardButton>>) {
   let navigate = vec![
     InlineKeyboardButton::with_callback_data(
-      String::from("Anime"),
+      String::from("Back to List"),
       format!("/{}/offset/0/", kitsu_id)
     ),
   ];
@@ -60,10 +60,13 @@ pub fn parse_anime(
     None => format!("Error: No Anime Found :("),
     Some((entry, anime)) => {
       format!(
-        "<b>{:?}</b>: {}{} <b>[{}/{}]</b>\n",
-        entry.attributes.status,
+        "<b>Title</b>: {}{}\n<b>Subtype</b>: {:?}\n\
+        <b>Status</b>: {:?}\n<b>Progress</b>: {:?} [{}/{}]",
         anime.attributes.canonical_title,
         anime.attributes.titles,
+        anime.attributes.subtype.unwrap_or_default(),
+        anime.attributes.status.unwrap_or_default(),
+        entry.attributes.status,
         entry.attributes.progress,
         anime.attributes.episode_count.unwrap_or(99),
       )
