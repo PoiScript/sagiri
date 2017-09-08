@@ -2,15 +2,15 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::cell::RefCell;
 
-use futures::{Future, Stream, future};
+use futures::{future, Future, Stream};
 
 use hyper::{Method, Request, Uri};
 use hyper::header::Authorization;
 
 use serde_json::from_slice;
 
-use error::{Error, DatabaseError};
-use types::{DatabaseResponse as Response, User, Client};
+use error::{DatabaseError, Error};
+use types::{Client, DatabaseResponse as Response, User};
 
 pub struct Database {
   uri: Uri,
@@ -22,8 +22,8 @@ pub struct Database {
 impl Database {
   pub fn new(token: String, client: Client) -> Database {
     Database {
-      token: token,
-      client: client,
+      token,
+      client,
       users: Rc::new(RefCell::new(Vec::new())),
       uri: Uri::from_str(
         "https://us-central1-sagiri-izumi.cloudfunctions.net/api/kitsu/users.json",

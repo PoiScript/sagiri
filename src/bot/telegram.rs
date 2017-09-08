@@ -1,14 +1,14 @@
 use std::str::FromStr;
 use std::time::Duration;
 
-use futures::{future, Future, Stream, Async, Poll};
+use futures::{future, Async, Future, Poll, Stream};
 
-use hyper::{Uri, Method, Request};
-use hyper::header::{ContentType, ContentLength};
+use hyper::{Method, Request, Uri};
+use hyper::header::{ContentLength, ContentType};
 
 use serde::ser::Serialize;
 use serde::de::DeserializeOwned;
-use serde_json::{from_value, from_slice, to_string};
+use serde_json::{from_slice, from_value, to_string};
 
 use types::Client;
 use types::telegram::*;
@@ -23,7 +23,7 @@ pub struct Bot {
 impl Bot {
   pub fn new(token: &str, client: Client) -> Bot {
     Bot {
-      client: client,
+      client,
       base_url: format!("https://api.telegram.org/bot{}/", token),
     }
   }
@@ -54,9 +54,7 @@ impl Bot {
           .and_then(|response| match response {
             Response::Ok { result } => from_value(result).map_err(|e| e.into()),
 
-            Response::Error { description } => {
-              Err(Error::Telegram(TelegramError { description }))
-            }
+            Response::Error { description } => Err(Error::Telegram(TelegramError { description })),
           })
       },
     ))
@@ -70,9 +68,9 @@ impl Bot {
     buttons: Option<Vec<Vec<InlineKeyboardButton>>>,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
+      parse_mode,
       text: Some(text),
       chat_id: Some(chat_id),
-      parse_mode: parse_mode,
       reply_markup: buttons.map(|b| ReplyMarkup::InlineKeyboard(b)),
       ..Default::default()
     };
@@ -88,10 +86,10 @@ impl Bot {
     buttons: Option<Vec<Vec<InlineKeyboardButton>>>,
   ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
+      parse_mode,
       text: Some(text),
       chat_id: Some(chat_id),
       message_id: Some(msg_id),
-      parse_mode: parse_mode,
       reply_markup: buttons.map(|b| ReplyMarkup::InlineKeyboard(b)),
       ..Default::default()
     };

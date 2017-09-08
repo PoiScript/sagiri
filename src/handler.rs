@@ -6,7 +6,7 @@ use kitsu::Api;
 use error::{Error, TelegramError};
 use types::{Client, MsgCommand, QueryCommand};
 use utils::*;
-use types::telegram::{Message, CallbackQuery, ParseMode};
+use types::telegram::{CallbackQuery, Message, ParseMode};
 use database::Database;
 
 pub struct Handler {
@@ -18,7 +18,7 @@ pub struct Handler {
 impl Handler {
   pub fn new(bot: Bot, client: Client, token: String) -> Handler {
     Handler {
-      bot: bot,
+      bot,
       api: Api::new(client.clone()),
       db: Database::new(token, client),
     }
@@ -32,12 +32,10 @@ impl Handler {
     info!("received message: '{}' from {}, in {}", text, user_id, text);
 
     match parse_message(&text) {
-      IResult::Done(_, command) => {
-        match command {
-          MsgCommand::List => self.list(user_id, chat_id),
-          MsgCommand::Update => self.update(chat_id),
-        }
-      }
+      IResult::Done(_, command) => match command {
+        MsgCommand::List => self.list(user_id, chat_id),
+        MsgCommand::Update => self.update(chat_id),
+      },
       _ => self.unknown(chat_id),
     }
   }
@@ -57,47 +55,38 @@ impl Handler {
         let chat_id = msg.chat.unwrap().id;
 
         match parse_query(&data) {
-          IResult::Done(_, command) => {
-            match command {
-              QueryCommand::Offset { kitsu_id, offset } => {
-                self.offset(msg_id, chat_id, kitsu_id, offset)
-              }
-              QueryCommand::Detail { kitsu_id, anime_id } => {
-                self.detail(msg_id, chat_id, kitsu_id, anime_id)
-              }
+          IResult::Done(_, command) => match command {
+            QueryCommand::Offset { kitsu_id, offset } => {
+              self.offset(msg_id, chat_id, kitsu_id, offset)
             }
-          }
+            QueryCommand::Detail { kitsu_id, anime_id } => {
+              self.detail(msg_id, chat_id, kitsu_id, anime_id)
+            }
+          },
           _ => self.unknown(chat_id),
         }
       }
-      None => {
-        Box::new(done::<_, Error>(Err(Error::Telegram(TelegramError {
-          description: "Outdated Message.".to_owned(),
-        }))))
-      }
+      None => Box::new(done::<_, Error>(Err(Error::Telegram(TelegramError {
+        description: "Outdated Message.".to_owned(),
+      })))),
     }
   }
 
   fn unknown(&self, chat_id: i64) -> Box<Future<Item = Message, Error = Error>> {
-    self.bot.send_message(
-      chat_id,
-      String::from("Unknown command."),
-      None,
-      None,
-    )
+    self
+      .bot
+      .send_message(chat_id, String::from("Unknown command."), None, None)
   }
 
   fn list(&mut self, user_id: i64, chat_id: i64) -> Box<Future<Item = Message, Error = Error>> {
     let bot = self.bot.clone();
     match self.db.get_user(user_id) {
-      None => {
-        bot.send_message(
-          chat_id,
-          format!("Non-registered user: {}", user_id),
-          None,
-          None,
-        )
-      }
+      None => bot.send_message(
+        chat_id,
+        format!("Non-registered user: {}", user_id),
+        None,
+        None,
+      ),
       Some(user) => Box::new(
         self
           .api

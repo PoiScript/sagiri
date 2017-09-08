@@ -36,12 +36,10 @@ named!(pub parse_query<&str, QueryCommand>,
 
 pub fn get_offset(url: Option<String>) -> Option<String> {
   url.map_or(None, |x| match Url::parse(&x) {
-    Ok(url) => {
-      url
-        .query_pairs()
-        .find(|&(ref key, _)| key == &Cow::Borrowed("page[offset]"))
-        .map_or(None, |(_, offset)| Some(offset.to_string()))
-    }
+    Ok(url) => url
+      .query_pairs()
+      .find(|&(ref key, _)| key == &Cow::Borrowed("page[offset]"))
+      .map_or(None, |(_, offset)| Some(offset.to_string())),
     _ => None,
   })
 }
@@ -53,24 +51,22 @@ pub fn parse_anime(
   let navigate = vec![
     InlineKeyboardButton::with_callback_data(
       String::from("Back to List"),
-      format!("/{}/offset/0/", kitsu_id)
+      format!("/{}/offset/0/", kitsu_id),
     ),
   ];
   let text = match pair {
     None => format!("Error: No Anime Found :("),
-    Some((entry, anime)) => {
-      format!(
-        "<b>Title</b>: {}{}\n<b>Subtype</b>: {:?}\n\
-        <b>Status</b>: {:?}\n<b>Progress</b>: {:?} [{}/{}]",
-        anime.attributes.canonical_title,
-        anime.attributes.titles,
-        anime.attributes.subtype.unwrap_or_default(),
-        anime.attributes.status.unwrap_or_default(),
-        entry.attributes.status,
-        entry.attributes.progress,
-        anime.attributes.episode_count.unwrap_or(99),
-      )
-    }
+    Some((entry, anime)) => format!(
+      "<b>Title</b>: {}{}\n<b>Subtype</b>: {:?}\n\
+       <b>Status</b>: {:?}\n<b>Progress</b>: {:?} [{}/{}]",
+      anime.attributes.canonical_title,
+      anime.attributes.titles,
+      anime.attributes.subtype.unwrap_or_default(),
+      anime.attributes.status.unwrap_or_default(),
+      entry.attributes.status,
+      entry.attributes.progress,
+      anime.attributes.episode_count.unwrap_or(99),
+    ),
   };
   (text, vec![navigate])
 }

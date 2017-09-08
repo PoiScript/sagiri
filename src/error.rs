@@ -1,5 +1,5 @@
 use std::error;
-use std::{io, fmt};
+use std::{fmt, io};
 
 use url;
 use hyper;

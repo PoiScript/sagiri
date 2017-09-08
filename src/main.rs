@@ -1,19 +1,19 @@
 #![feature(custom_attribute)]
 
+extern crate env_logger;
+extern crate futures;
+extern crate hyper;
+extern crate hyper_tls;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate nom;
-extern crate url;
 extern crate serde;
-extern crate hyper;
-extern crate futures;
-extern crate hyper_tls;
-extern crate env_logger;
-extern crate tokio_core;
-extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
+extern crate tokio_core;
+extern crate url;
 
 mod bot;
 mod error;
@@ -35,9 +35,9 @@ fn main() {
   let handle = core.handle();
 
   let client = hyper::Client::configure()
-    .connector(hyper_tls::HttpsConnector::new(4, &handle).expect(
-      "error/create-connector",
-    ))
+    .connector(
+      hyper_tls::HttpsConnector::new(4, &handle).expect("error/create-connector"),
+    )
     .build(&handle);
 
   let tg_bot = bot::telegram::Bot::new(TOKEN, client.clone());

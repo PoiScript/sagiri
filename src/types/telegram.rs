@@ -110,7 +110,7 @@ pub struct InlineKeyboardButton {
 impl InlineKeyboardButton {
   pub fn with_callback_data(text: String, data: String) -> InlineKeyboardButton {
     InlineKeyboardButton {
-      text: text,
+      text,
       url: None,
       callback_data: Some(data),
     }

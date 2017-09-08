@@ -51,13 +51,10 @@ pub enum AnimeSubtype {
   ONA,
   OVA,
   TV,
-  #[serde(rename = "movie")]
-  Movie,
-  #[serde(rename = "music")]
-  Music,
-  #[serde(rename = "special")]
-  Special,
   Unknown,
+  #[serde(rename = "movie")] Movie,
+  #[serde(rename = "music")] Music,
+  #[serde(rename = "special")] Special,
 }
 
 impl Default for AnimeSubtype {

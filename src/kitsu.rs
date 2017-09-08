@@ -5,10 +5,10 @@ use url::Url;
 use futures::{future, Future, Stream};
 
 use hyper::mime::Mime;
-use hyper::{Uri, Method, Request};
+use hyper::{Method, Request, Uri};
 use hyper::header::ContentType;
 
-use serde_json::{from_value, from_slice};
+use serde_json::{from_slice, from_value};
 
 use types::Client;
 use error::{Error, KitsuError};
@@ -86,7 +86,11 @@ impl Api {
     offset: i64,
   ) -> Box<
     Future<
-      Item = (Option<String>, Option<String>, Option<(Vec<Entries>, Vec<Anime>)>),
+      Item = (
+        Option<String>,
+        Option<String>,
+        Option<(Vec<Entries>, Vec<Anime>)>,
+      ),
       Error = Error,
     >,
   > {
@@ -117,21 +121,15 @@ impl Api {
       self
         .request(req)
         .and_then(|response| match response {
-          Response::Ok { data, included, links, .. } => {
-            Ok((
-              data.into_iter().map(|v| from_value(v).unwrap()).collect(),
-              included.map(|v| {
-                v.into_iter().map(|v| from_value(v).unwrap()).collect()
-              }),
-              links,
-            ))
-          }
+          Response::Ok { data, included, links, .. } => Ok((
+            data.into_iter().map(|v| from_value(v).unwrap()).collect(),
+            included.map(|v| v.into_iter().map(|v| from_value(v).unwrap()).collect()),
+            links,
+          )),
 
-          Response::Error { errors } => {
-            Err(Error::Kitsu(KitsuError {
-              description: format!("{}: {}", errors[0].title, errors[1].detail),
-            }))
-          }
+          Response::Error { errors } => Err(Error::Kitsu(KitsuError {
+            description: format!("{}: {}", errors[0].title, errors[1].detail),
+          })),
         })
         .and_then(|(entries, included, links)| match included {
           None => Ok((None, None, None)),
@@ -168,11 +166,9 @@ impl Api {
           Response::Ok { mut data, included, .. } => {
             Ok((data.pop(), included.map_or(None, |mut v| v.pop())))
           }
-          Response::Error { errors } => {
-            Err(Error::Kitsu(KitsuError {
-              description: format!("{}: {}", errors[0].title, errors[1].detail),
-            }))
-          }
+          Response::Error { errors } => Err(Error::Kitsu(KitsuError {
+            description: format!("{}: {}", errors[0].title, errors[1].detail),
+          })),
         })
         .and_then(|(entry, anime)| match (entry, anime) {
           (Some(entry), Some(anime)) => Ok(Some(
