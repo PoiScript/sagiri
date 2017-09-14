@@ -26,7 +26,7 @@ impl Database {
       client,
       users: Rc::new(RefCell::new(Vec::new())),
       uri: Uri::from_str(
-        "https://us-central1-sagiri-izumi.cloudfunctions.net/api/kitsu/users.json",
+        "https://sagiri-izumi.firebaseapp.com/api/kitsu/user",
       ).unwrap(),
     }
   }

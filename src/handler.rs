@@ -92,7 +92,7 @@ impl Handler {
           .api
           .fetch_anime(user.kitsu_id, 0)
           .and_then(move |(prev, next, pairs)| {
-            Ok(parse_entry(user.kitsu_id, prev, next, pairs))
+            Ok(parse_anime_list(user.kitsu_id, prev, next, pairs))
           })
           .and_then(move |(text, buttons)| {
             bot.send_message(chat_id, text, Some(ParseMode::HTML), Some(buttons))
@@ -126,7 +126,7 @@ impl Handler {
         .api
         .fetch_anime(kitsu_id, offset)
         .and_then(move |(prev, next, pairs)| {
-          Ok(parse_entry(kitsu_id, prev, next, pairs))
+          Ok(parse_anime_list(kitsu_id, prev, next, pairs))
         })
         .and_then(move |(text, buttons)| {
           bot.edit_inline_keyboard(msg_id, chat_id, text, Some(ParseMode::HTML), Some(buttons))
@@ -146,7 +146,7 @@ impl Handler {
       self
         .api
         .get_anime(kitsu_id, anime_id)
-        .and_then(move |pair| Ok(parse_anime(kitsu_id, pair)))
+        .and_then(move |pair| Ok(parse_anime_detail(kitsu_id, pair)))
         .and_then(move |(text, buttons)| {
           bot.edit_inline_keyboard(msg_id, chat_id, text, Some(ParseMode::HTML), Some(buttons))
         }),

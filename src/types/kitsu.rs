@@ -57,12 +57,6 @@ pub enum AnimeSubtype {
   #[serde(rename = "special")] Special,
 }
 
-impl Default for AnimeSubtype {
-  fn default() -> AnimeSubtype {
-    AnimeSubtype::Unknown
-  }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AnimeStatus {
@@ -74,22 +68,16 @@ pub enum AnimeStatus {
   Unknown,
 }
 
-impl Default for AnimeStatus {
-  fn default() -> AnimeStatus {
-    AnimeStatus::Unknown
-  }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AnimeTitles {
   pub ja_jp: Option<String>,
 }
 
-impl fmt::Display for AnimeTitles {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self.ja_jp {
-      Some(ref title) => write!(f, "(<i>{}</i>)", title),
-      None => write!(f, ""),
+impl Anime {
+  pub fn get_ja_jp_title(&self) -> String {
+    match self.attributes.titles.ja_jp {
+      Some(ref title) => format!("{}\n", title),
+      None => String::new()
     }
   }
 }

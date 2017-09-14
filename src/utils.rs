@@ -7,6 +7,9 @@ use types::{MsgCommand, QueryCommand};
 use types::kitsu::*;
 use types::telegram::*;
 
+const ROMAN_NUMERALS: [&'static str; 10] =
+  ["I", "II", "III", "IV", "V", "VI", "VII", "IIX", "IX", "X"];
+
 named!(pub parse_message<&str, MsgCommand>,
   alt!(
     map!(tag!("/list"), |_| MsgCommand::List) |
@@ -44,7 +47,7 @@ pub fn get_offset(url: Option<String>) -> Option<String> {
   })
 }
 
-pub fn parse_anime(
+pub fn parse_anime_detail(
   kitsu_id: i64,
   pair: Option<(Entries, Anime)>,
 ) -> (String, Vec<Vec<InlineKeyboardButton>>) {
@@ -56,22 +59,29 @@ pub fn parse_anime(
   ];
   let text = match pair {
     None => format!("Error: No Anime Found :("),
-    Some((entry, anime)) => format!(
-      "<b>Title</b>: {}{}\n<b>Subtype</b>: {:?}\n\
-       <b>Status</b>: {:?}\n<b>Progress</b>: {:?} [{}/{}]",
-      anime.attributes.canonical_title,
-      anime.attributes.titles,
-      anime.attributes.subtype.unwrap_or_default(),
-      anime.attributes.status.unwrap_or_default(),
-      entry.attributes.status,
-      entry.attributes.progress,
-      anime.attributes.episode_count.unwrap_or(99),
-    ),
+    Some((entry, anime)) => {
+      let mut anime_attr = anime.attributes;
+      let mut entry_attr = entry.attributes;
+      format!(
+        "<b>Title</b>: {}\n\
+        <b>JapaneseTitle</b>: {}\n\
+        <b>Subtype</b>: {:?}\n\
+        <b>Status</b>: {:?}\n\
+        <b>Progress</b>: {:?} [{}/{}]",
+        anime_attr.canonical_title,
+        anime_attr.titles.ja_jp.unwrap_or(String::from("null")),
+        anime_attr.subtype.unwrap_or(AnimeSubtype::Unknown),
+        anime_attr.status.unwrap_or(AnimeStatus::Unknown),
+        entry_attr.status,
+        entry_attr.progress,
+        anime_attr.episode_count.unwrap_or(99),
+      )
+    },
   };
   (text, vec![navigate])
 }
 
-pub fn parse_entry(
+pub fn parse_anime_list(
   kitsu_id: i64,
   prev: Option<String>,
   next: Option<String>,
@@ -94,19 +104,22 @@ pub fn parse_entry(
   let mut text = String::new();
   match pairs {
     None => text = format!("No Anime :("),
-    Some((entries, animes)) => {
-      for (i, (entry, anime)) in entries.iter().zip(animes.iter()).enumerate() {
+    Some((mut entries, mut animes)) => {
+      for (i, (entry, anime)) in entries.iter_mut().zip(animes.iter_mut()).enumerate() {
+        let anime_attr: &AnimeAttributes = &anime.attributes;
+        let entry_attr = &entry.attributes;
         text.push_str(&format!(
-          "{} <b>{:?}</b>: {}{} <b>[{}/{}]</b>\n",
-          i,
-          entry.attributes.status,
-          anime.attributes.canonical_title,
-          anime.attributes.titles,
-          entry.attributes.progress,
-          anime.attributes.episode_count.unwrap_or(99),
+          "<b>{}.</b> {}\n\
+           {:indent$}{:?}\n\
+           {:indent$}<b>{:?} [{}/{}]</b>\n",
+          ROMAN_NUMERALS[i],
+          anime_attr.canonical_title,
+          "", anime_attr.titles.ja_jp,
+          "", entry_attr.status, entry_attr.progress, anime_attr.episode_count.unwrap_or(99),
+          indent=4
         ));
         index.push(InlineKeyboardButton::with_callback_data(
-          format!("{} {}", i, anime.attributes.canonical_title),
+          format!("{}. {}", ROMAN_NUMERALS[i], anime_attr.canonical_title),
           format!("/{}/detail/{}/", kitsu_id, anime.id),
         ));
       }
