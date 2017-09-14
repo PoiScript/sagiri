@@ -7,9 +7,6 @@ use types::{MsgCommand, QueryCommand};
 use types::kitsu::*;
 use types::telegram::*;
 
-const ROMAN_NUMERALS: [&'static str; 10] =
-  ["I", "II", "III", "IV", "V", "VI", "VII", "IIX", "IX", "X"];
-
 named!(pub parse_message<&str, MsgCommand>,
   alt!(
     map!(tag!("/list"), |_| MsgCommand::List) |
@@ -60,8 +57,8 @@ pub fn parse_anime_detail(
   let text = match pair {
     None => format!("Error: No Anime Found :("),
     Some((entry, anime)) => {
-      let mut anime_attr = anime.attributes;
-      let mut entry_attr = entry.attributes;
+      let anime_attr = anime.attributes;
+      let entry_attr = entry.attributes;
       format!(
         "<b>Title</b>: {}\n\
         <b>JapaneseTitle</b>: {}\n\
@@ -104,22 +101,24 @@ pub fn parse_anime_list(
   let mut text = String::new();
   match pairs {
     None => text = format!("No Anime :("),
-    Some((mut entries, mut animes)) => {
-      for (i, (entry, anime)) in entries.iter_mut().zip(animes.iter_mut()).enumerate() {
+    Some((entries, animes)) => {
+      for (i, (entry, anime)) in entries.iter().zip(animes.iter()).enumerate() {
         let anime_attr: &AnimeAttributes = &anime.attributes;
         let entry_attr = &entry.attributes;
         text.push_str(&format!(
-          "<b>{}.</b> {}\n\
-           {:indent$}{:?}\n\
+          "<b>{}|</b> {}\n\
+           {:indent$}{}\n\
            {:indent$}<b>{:?} [{}/{}]</b>\n",
-          ROMAN_NUMERALS[i],
-          anime_attr.canonical_title,
-          "", anime_attr.titles.ja_jp,
+          i, anime_attr.canonical_title,
+          "", match anime_attr.titles.ja_jp {
+            Some(ref title) => title,
+            None => "null"
+          },
           "", entry_attr.status, entry_attr.progress, anime_attr.episode_count.unwrap_or(99),
           indent=4
         ));
         index.push(InlineKeyboardButton::with_callback_data(
-          format!("{}. {}", ROMAN_NUMERALS[i], anime_attr.canonical_title),
+          format!("{} {}", i, anime_attr.canonical_title),
           format!("/{}/detail/{}/", kitsu_id, anime.id),
         ));
       }

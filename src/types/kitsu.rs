@@ -1,6 +1,3 @@
-use std::fmt;
-use std::default::Default;
-
 use serde_json::Value;
 
 #[serde(untagged)]
@@ -71,15 +68,6 @@ pub enum AnimeStatus {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AnimeTitles {
   pub ja_jp: Option<String>,
-}
-
-impl Anime {
-  pub fn get_ja_jp_title(&self) -> String {
-    match self.attributes.titles.ja_jp {
-      Some(ref title) => format!("{}\n", title),
-      None => String::new()
-    }
-  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
