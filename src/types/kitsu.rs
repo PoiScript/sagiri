@@ -1,14 +1,12 @@
-use serde_json::Value;
-
 #[serde(untagged)]
-#[derive(Debug, Deserialize)]
-pub enum Response {
-  Ok {
-    data: Vec<Value>,
-    included: Option<Vec<Value>>,
-    meta: Option<Meta>,
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Json {
+  AnimeEntry {
+    data: Vec<Entry>,
     links: Links,
+    included: Vec<Anime>,
   },
+  Entry { data: Entry },
   Error { errors: Vec<ApiError> },
 }
 
@@ -29,8 +27,9 @@ pub enum Type {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Anime {
+  #[serde(default = "String::new")]
   pub id: String,
-  pub attributes: AnimeAttributes,
+  pub attributes: Option<AnimeAttributes>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -70,13 +69,13 @@ pub struct AnimeTitles {
   pub ja_jp: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct User {
   id: i32,
   pub attributes: UserAttributes,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserAttributes {
   pub name: String,
@@ -84,37 +83,40 @@ pub struct UserAttributes {
   pub title_language_preference: String,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Entries {
-  pub attributes: EntriesAttributes,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Entry {
+  pub id: String,
+  pub attributes: Option<EntryAttributes>,
+  pub relationships: Option<Relationships>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct EntriesAttributes {
-  pub progress: i32,
-  pub status: EntriesStatus,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EntryAttributes {
+  pub progress: Option<i64>,
+  pub status: Option<EntryStatus>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum EntriesStatus {
+pub enum EntryStatus {
   OnHold,
   Current,
   Dropped,
   Planned,
   Completed,
+  Unknown,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
   pub count: i32,
-  pub status_counts: StatusCounts,
+  pub status_counts: MetaStatusCounts,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct StatusCounts {
+pub struct MetaStatusCounts {
   current: Option<i32>,
   dropped: Option<i32>,
   on_hold: Option<i32>,
@@ -128,71 +130,7 @@ pub struct Links {
   pub next: Option<String>,
 }
 
-// TODO
-//#[derive(Serialize, Deserialize)]
-//pub struct Request {
-//  pub data: RequestData,
-//}
-//
-//impl Request {
-//  pub fn update_anime(user_id: String, anime_id: String, progress: i32) -> Request {
-//    Request {
-//      data: RequestData {
-//        id: user_id,
-//        attributes: Attributes { progress: progress },
-//        relate: {
-//          let mut relate = Map::new();
-//          relate.insert(
-//            RelateType::Anime,
-//            Relate {
-//              data: RelateData {
-//                id: anime_id,
-//                _type: RelateType::Anime,
-//              },
-//            },
-//          );
-//          relate
-//        },
-//        _type: RequestType::LibraryEntries,
-//      },
-//    }
-//  }
-//}
-//
-//
-//#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
-//pub struct Empty;
-//
-//#[derive(Serialize, Deserialize)]
-//pub struct RequestData {
-//  pub id: String,
-//  #[serde(rename = "type")]
-//  pub _type: RequestType,
-//  pub attributes: Attributes,
-//  #[serde(rename = "relationships")]
-//  pub relate: Map<RelateType, Relate>,
-//}
-//
-//#[derive(Serialize, Deserialize)]
-//pub struct Attributes {
-//  pub progress: i32,
-//}
-//
-//#[derive(Serialize, Deserialize)]
-//pub struct Relate {
-//  pub data: RelateData,
-//}
-//
-//#[derive(Serialize, Deserialize)]
-//pub struct RelateData {
-//  pub id: String,
-//  #[serde(rename = "type")]
-//  pub _type: RelateType,
-//}
-//
-//#[derive(Hash, Eq, PartialEq, Serialize, Deserialize)]
-//#[serde(rename_all = "lowercase")]
-//pub enum RelateType {
-//  Anime,
-//  Manga,
-//}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Relationships {
+  pub anime: Option<Anime>,
+}

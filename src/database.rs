@@ -25,9 +25,7 @@ impl Database {
       token,
       client,
       users: Rc::new(RefCell::new(Vec::new())),
-      uri: Uri::from_str(
-        "https://sagiri-izumi.firebaseapp.com/api/kitsu/user",
-      ).unwrap(),
+      uri: Uri::from_str("https://sagiri-izumi.firebaseapp.com/api/kitsu/user").unwrap(),
     }
   }
 

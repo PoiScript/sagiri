@@ -8,11 +8,11 @@ use hyper::mime::Mime;
 use hyper::{Method, Request, Uri};
 use hyper::header::ContentType;
 
-use serde_json::{from_slice, from_value};
+use serde_json::from_slice;
 
 use types::Client;
 use error::{Error, KitsuError};
-use types::kitsu::{Anime, Entries, Response};
+use types::kitsu::{Anime, Entry, Json};
 
 #[derive(Clone)]
 pub struct Api {
@@ -28,72 +28,27 @@ impl Api {
     }
   }
 
-  fn request(&self, req: Request) -> Box<Future<Item = Response, Error = Error>> {
+  fn request(&self, req: Request) -> Box<Future<Item=Json, Error=Error>> {
     Box::new(self.client.request(req).from_err::<Error>().and_then(
       |res| {
         res.body().from_err::<Error>().concat2().and_then(|chunks| {
-          future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
+          print!("{}", String::from_utf8(chunks.to_vec()).unwrap());
+          future::result::<Json, Error>(from_slice(&chunks).map_err(|e| e.into()))
+        }).and_then(|res| match res {
+          Json::Error { errors } => Err(Error::Kitsu(KitsuError {
+            description: format!("{}: {}", errors[0].title, errors[0].detail),
+          })),
+          _ => Ok(res)
         })
       },
     ))
   }
 
-  // TODO
-  //  pub fn update_anime(
-  //    &self,
-  //    progress: i32,
-  //    user_id: String,
-  //    anime_id: String,
-  //  ) -> Box<Future<Item = Value, Error = Error>> {
-  //    let uri = Uri::from_str(&format!(
-  //      "{}{}/{}",
-  //      self.base_url,
-  //      "library-entries",
-  //      &user_id
-  //    )).expect("error/build-uri");
-  //    let data = KitsuRequest::update_anime(user_id, anime_id, progress);
-  //
-  //    let json = to_string(&data).expect("error/json-to-string");
-  //
-  //    let mut req = Request::new(Method::Post, uri);
-  //    req.headers_mut().set(ContentType::json());
-  //    req.headers_mut().set(ContentLength(json.len() as u64));
-  //    req.set_body(json);
-  //
-  //    Box::new(self.client.request(req).from_err::<Error>().and_then(
-  //      |res| {
-  //        res
-  //          .body()
-  //          .from_err::<Error>()
-  //          .concat2()
-  //          .and_then(|chunks| {
-  //            future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
-  //          })
-  //          .and_then(|response| match response {
-  //            Response::Ok { data } => from_value(data).map_err(|e| e.into()),
-  //
-  //            Response::Error { errors } => {
-  //              return Err(Error::Kitsu(KitsuError { errors }));
-  //            }
-  //          })
-  //      },
-  //    ))
-  //  }
-
   pub fn fetch_anime(
     &self,
     user_id: i64,
     offset: i64,
-  ) -> Box<
-    Future<
-      Item = (
-        Option<String>,
-        Option<String>,
-        Option<(Vec<Entries>, Vec<Anime>)>,
-      ),
-      Error = Error,
-    >,
-  > {
+  ) -> Box<Future<Item=(Option<String>, Option<String>, Vec<Entry>, Vec<Anime>), Error=Error>> {
     let mut endpoint = self.base.join("library-entries").unwrap();
 
     let url = endpoint
@@ -120,21 +75,13 @@ impl Api {
     Box::new(
       self
         .request(req)
-        .and_then(|response| match response {
-          Response::Ok { data, included, links, .. } => Ok((
-            data.into_iter().map(|v| from_value(v).unwrap()).collect(),
-            included.map(|v| v.into_iter().map(|v| from_value(v).unwrap()).collect()),
-            links,
-          )),
-
-          Response::Error { errors } => Err(Error::Kitsu(KitsuError {
-            description: format!("{}: {}", errors[0].title, errors[1].detail),
-          })),
+        .and_then(|res| match res {
+          Json::AnimeEntry { data, included, links, .. } => Ok((data, included, links)),
+          _ => Err(Error::Kitsu(KitsuError { description: String::from("Invalid JSON") }))
         })
-        .and_then(|(entries, included, links)| match included {
-          None => Ok((None, None, None)),
-          Some(animes) => Ok((links.prev, links.next, Some((entries, animes)))),
-        }),
+        .and_then(|(entries, animes, links)|
+          Ok((links.prev, links.next, entries, animes))
+        ),
     )
   }
 
@@ -142,7 +89,7 @@ impl Api {
     &self,
     user_id: i64,
     anime_id: i64,
-  ) -> Box<Future<Item = Option<(Entries, Anime)>, Error = Error>> {
+  ) -> Box<Future<Item=Option<(Entry, Anime)>, Error=Error>> {
     let mut endpoint = self.base.join("library-entries").unwrap();
 
     let url = endpoint
@@ -162,18 +109,12 @@ impl Api {
     Box::new(
       self
         .request(req)
-        .and_then(|response| match response {
-          Response::Ok { mut data, included, .. } => {
-            Ok((data.pop(), included.map_or(None, |mut v| v.pop())))
-          }
-          Response::Error { errors } => Err(Error::Kitsu(KitsuError {
-            description: format!("{}: {}", errors[0].title, errors[1].detail),
-          })),
+        .and_then(|res| match res {
+          Json::AnimeEntry { mut data, mut included, .. } => Ok((data.pop(), included.pop())),
+          _ => Err(Error::Kitsu(KitsuError { description: String::from("Invalid JSON") }))
         })
         .and_then(|(entry, anime)| match (entry, anime) {
-          (Some(entry), Some(anime)) => Ok(Some(
-            (from_value(entry).unwrap(), from_value(anime).unwrap()),
-          )),
+          (Some(entry), Some(anime)) => Ok(Some((entry, anime))),
           _ => Ok(None),
         }),
     )

@@ -65,22 +65,14 @@ impl Update {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Message {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub message_id: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub from: Option<User>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub date: Option<i32>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub chat: Option<Chat>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub text: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub chat_id: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub reply_markup: Option<ReplyMarkup>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub parse_mode: Option<ParseMode>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub message_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub from: Option<User>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub date: Option<i32>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub chat: Option<Chat>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub text: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub chat_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub reply_markup: Option<ReplyMarkup>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub parse_mode: Option<ParseMode>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -101,10 +93,8 @@ pub enum ReplyMarkup {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InlineKeyboardButton {
   pub text: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub url: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub callback_data: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub url: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub callback_data: Option<String>,
 }
 
 impl InlineKeyboardButton {
@@ -129,8 +119,7 @@ pub struct User {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Chat {
   pub id: i64,
-  #[serde(rename = "type")]
-  pub chat_type: ChatType,
+  #[serde(rename = "type")] pub chat_type: ChatType,
   pub title: Option<String>,
   pub username: Option<String>,
   pub first_name: Option<String>,
