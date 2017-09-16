@@ -46,7 +46,6 @@ impl Bot {
           .from_err::<Error>()
           .concat2()
           .and_then(|chunks| {
-            println!("{}", String::from_utf8(chunks.to_vec()).unwrap());
             future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
           })
           .and_then(|res| match res {
@@ -110,7 +109,7 @@ impl Bot {
     callback_query_id: String,
     text: Option<String>,
     show_alert: Option<bool>,
-  ) -> Box<Future<Item=Message, Error=Error>> {
+  ) -> Box<Future<Item=bool, Error=Error>> {
     let query_answer = QueryAnswer {
       text,
       show_alert,
@@ -119,7 +118,7 @@ impl Bot {
     Box::new(
       self.request::<QueryAnswer>("answerCallbackQuery", &query_answer)
         .and_then(|res| match res {
-          Response::Message { result } => Ok(result),
+          Response::Bool { result } => Ok(result),
           _ => Err(Error::Telegram(TelegramError { description: String::from("Invalid JSON") }))
         }))
   }

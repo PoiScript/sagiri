@@ -6,13 +6,13 @@ use futures::{future, Future, Stream};
 
 use hyper::mime::Mime;
 use hyper::{Method, Request, Uri};
-use hyper::header::{ContentLength, ContentType};
+use hyper::header::{Authorization, Bearer, ContentLength, ContentType};
 
 use serde_json::{from_slice, to_string};
 
 use types::Client;
 use error::{Error, KitsuError};
-use types::kitsu::{Anime, Entry, Json, Relationships, EntryAttributes};
+use types::kitsu::{Anime, Entry, Json, Type, Relationships, EntryAttributes};
 
 #[derive(Clone)]
 pub struct Api {
@@ -125,6 +125,7 @@ impl Api {
 
   pub fn update_anime_entry(
     &self,
+    token: String,
     entry_id: String,
     progress: i64,
     anime_id: String
@@ -135,6 +136,7 @@ impl Api {
     let json = Json::Entry {
       data: Entry {
         id: entry_id,
+        kind: Type::LibraryEntries,
         attributes: Some(EntryAttributes { status: None, progress: Some(progress) }),
         relationships: Some(
           Relationships { anime: Some(Anime { id: anime_id, attributes: None }) }
@@ -147,6 +149,7 @@ impl Api {
     req.headers_mut().set(ContentType(
       Mime::from_str("application/vnd.api+json").unwrap(),
     ));
+    req.headers_mut().set(Authorization(Bearer { token }));
     req.headers_mut().set(ContentLength(body.len() as u64));
     req.set_body(body);
 

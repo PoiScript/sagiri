@@ -33,8 +33,8 @@ pub enum QueryCommand {
   Detail { kitsu_id: i64, anime_id: i64 },
   Progress {
     kitsu_id: i64,
-    anime_id: i64,
-    entry_id: i64,
-    progress: i64
+    progress: i64,
+    anime_id: String,
+    entry_id: String,
   }
 }

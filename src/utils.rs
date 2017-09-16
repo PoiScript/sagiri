@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::str::FromStr;
 
 use url::Url;
-use serde_json::to_string;
 
 use types::{MsgCommand, QueryCommand};
 use types::kitsu::*;
@@ -31,10 +30,10 @@ named!(pub parse_query<&str, QueryCommand>,
         (QueryCommand::Detail{ kitsu_id, anime_id })
       ) |
       do_parse!(
-        tag!("/update/") >>
-        anime_id: map_res!(take_until!("/"), i64::from_str)  >>
+        tag!("/progress/") >>
+        anime_id: map!(take_until!("/"), String::from)  >>
         tag!("/") >>
-        entry_id: map_res!(take_until!("/"), i64::from_str)  >>
+        entry_id: map!(take_until!("/"), String::from)  >>
         tag!("/") >>
         progress: map_res!(take_until!("/"), i64::from_str)  >>
         (QueryCommand::Progress{ kitsu_id, anime_id, entry_id, progress })
@@ -66,7 +65,12 @@ pub fn parse_anime_detail(
       let entry_attr = entry.attributes.unwrap();
       buttons.push(vec![InlineKeyboardButton::with_callback_data(
         format!("Make {} Complete", entry_attr.progress.unwrap_or(0) + 1),
-        format!("/{}/offset/0/", kitsu_id),
+        format!(
+          "/{}/progress/{}/{}/{}/",
+          kitsu_id,
+          anime.id,
+          entry.id,
+          entry_attr.progress.unwrap_or(0) + 1),
       )]);
       format!(
         "<b>Title</b>: {}\n\
@@ -114,7 +118,7 @@ pub fn parse_anime_list(
   }
   let mut text = String::new();
   for (i, (
-    &Entry { id: ref entry_id, attributes: ref entry_attr, .. },
+    &Entry { attributes: ref entry_attr, .. },
     &Anime { id: ref anime_id, attributes: ref anime_attr, .. }
   )) in entries.iter().zip(animes.iter()).enumerate() {
     match (entry_attr, anime_attr) {
@@ -145,23 +149,4 @@ pub fn parse_anime_list(
     }
   }
   (text, vec![index, navigate])
-}
-
-pub fn update_entry_anime(entry_id: String, progress: i64, anime_id: String) -> String {
-  let req = Json::Entry {
-    data: Entry {
-      id: entry_id,
-      attributes: Some(EntryAttributes {
-        status: None,
-        progress: Some(progress),
-      }),
-      relationships: Some(Relationships {
-        anime: Some(Anime {
-          id: anime_id,
-          attributes: None,
-        }),
-      }),
-    },
-  };
-  to_string(&req).unwrap()
 }
