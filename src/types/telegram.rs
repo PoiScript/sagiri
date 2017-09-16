@@ -1,78 +1,37 @@
-use serde_json::Value;
-use error::{Error, TelegramError};
-
 #[serde(untagged)]
 #[derive(Debug, Deserialize)]
 pub enum Response {
-  Ok { result: Value },
+  Bool { result: bool },
+  Update { result: Vec<Update> },
+  Message { result: Message },
   Error { description: String },
 }
 
+#[serde(untagged)]
 #[derive(Debug, Deserialize)]
-pub struct Update {
-  pub update_id: i32,
-  message: Option<Message>,
-  channel_post: Option<Value>,
-  inline_query: Option<Value>,
-  callback_query: Option<CallbackQuery>,
-  edited_message: Option<Value>,
-  shipping_query: Option<Value>,
-  pre_checkout_query: Option<Value>,
-  edited_channel_post: Option<Value>,
-  chosen_inline_result: Option<Value>,
-}
-
-#[derive(Debug, Deserialize)]
-pub enum Received {
-  Message(Message),
-  ChannelPost(Value),
-  InlineQuery(Value),
-  CallbackQuery(CallbackQuery),
-  EditedMessage(Value),
-  ShippingQuery(Value),
-  PreCheckoutQuery(Value),
-  EditedChannelPost(Value),
-  ChosenInlineResult(Value),
-}
-
-impl Update {
-  pub fn parse(self) -> Result<Received, Error> {
-    if let Some(m) = self.message {
-      Ok(Received::Message(m))
-    } else if let Some(e) = self.edited_message {
-      Ok(Received::EditedMessage(e))
-    } else if let Some(c) = self.channel_post {
-      Ok(Received::ChannelPost(c))
-    } else if let Some(e) = self.edited_channel_post {
-      Ok(Received::EditedChannelPost(e))
-    } else if let Some(i) = self.inline_query {
-      Ok(Received::InlineQuery(i))
-    } else if let Some(c) = self.chosen_inline_result {
-      Ok(Received::ChosenInlineResult(c))
-    } else if let Some(c) = self.callback_query {
-      Ok(Received::CallbackQuery(c))
-    } else if let Some(s) = self.shipping_query {
-      Ok(Received::ShippingQuery(s))
-    } else if let Some(p) = self.pre_checkout_query {
-      Ok(Received::PreCheckoutQuery(p))
-    } else {
-      Err(Error::Telegram(TelegramError {
-        description: "can't parse update".to_owned(),
-      }))
-    }
-  }
+pub enum Update {
+  Message { update_id: i32, message: Message },
+  CallbackQuery { update_id: i32, callback_query: CallbackQuery }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Message {
-  #[serde(skip_serializing_if = "Option::is_none")] pub message_id: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")] pub from: Option<User>,
-  #[serde(skip_serializing_if = "Option::is_none")] pub date: Option<i32>,
-  #[serde(skip_serializing_if = "Option::is_none")] pub chat: Option<Chat>,
-  #[serde(skip_serializing_if = "Option::is_none")] pub text: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")] pub chat_id: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")] pub reply_markup: Option<ReplyMarkup>,
-  #[serde(skip_serializing_if = "Option::is_none")] pub parse_mode: Option<ParseMode>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub message_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub from: Option<User>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub date: Option<i32>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub chat: Option<Chat>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub text: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub chat_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub reply_markup: Option<ReplyMarkup>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub parse_mode: Option<ParseMode>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -146,10 +105,16 @@ pub struct CallbackQuery {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
-pub struct Empty;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct GetUpdate {
   pub offset: i32,
   pub timeout: i32,
+}
+
+#[derive(Serialize)]
+pub struct QueryAnswer {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub text: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub show_alert: Option<bool>,
+  pub callback_query_id: String,
 }

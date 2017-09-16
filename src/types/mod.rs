@@ -31,4 +31,10 @@ pub enum MsgCommand {
 pub enum QueryCommand {
   Offset { kitsu_id: i64, offset: i64 },
   Detail { kitsu_id: i64, anime_id: i64 },
+  Progress {
+    kitsu_id: i64,
+    anime_id: i64,
+    entry_id: i64,
+    progress: i64
+  }
 }

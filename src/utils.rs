@@ -29,6 +29,15 @@ named!(pub parse_query<&str, QueryCommand>,
         tag!("/detail/") >>
         anime_id: map_res!(take_until!("/"), i64::from_str)  >>
         (QueryCommand::Detail{ kitsu_id, anime_id })
+      ) |
+      do_parse!(
+        tag!("/update/") >>
+        anime_id: map_res!(take_until!("/"), i64::from_str)  >>
+        tag!("/") >>
+        entry_id: map_res!(take_until!("/"), i64::from_str)  >>
+        tag!("/") >>
+        progress: map_res!(take_until!("/"), i64::from_str)  >>
+        (QueryCommand::Progress{ kitsu_id, anime_id, entry_id, progress })
       )
     ) >>
     (command)
@@ -49,17 +58,16 @@ pub fn parse_anime_detail(
   kitsu_id: i64,
   pair: Option<(Entry, Anime)>,
 ) -> (String, Vec<Vec<InlineKeyboardButton>>) {
-  let navigate = vec![
-    InlineKeyboardButton::with_callback_data(
-      String::from("Back to List"),
-      format!("/{}/offset/0/", kitsu_id),
-    ),
-  ];
+  let mut buttons = Vec::new();
   let text = match pair {
     None => format!("Error: No Anime Found :("),
     Some((entry, anime)) => {
       let anime_attr = anime.attributes.unwrap();
       let entry_attr = entry.attributes.unwrap();
+      buttons.push(vec![InlineKeyboardButton::with_callback_data(
+        format!("Make {} Complete", entry_attr.progress.unwrap_or(0) + 1),
+        format!("/{}/offset/0/", kitsu_id),
+      )]);
       format!(
         "<b>Title</b>: {}\n\
          <b>JapaneseTitle</b>: {}\n\
@@ -76,7 +84,11 @@ pub fn parse_anime_detail(
       )
     }
   };
-  (text, vec![navigate])
+  buttons.push(vec![InlineKeyboardButton::with_callback_data(
+    String::from("Back to List"),
+    format!("/{}/offset/0/", kitsu_id),
+  )]);
+  (text, buttons)
 }
 
 pub fn parse_anime_list(

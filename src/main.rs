@@ -24,7 +24,7 @@ mod handler;
 mod database;
 
 use futures::Stream;
-use types::telegram::Received;
+use types::telegram::Update;
 
 fn main() {
   const TOKEN: &'static str = env!("TOKEN");
@@ -45,10 +45,9 @@ fn main() {
   let mut handler = handler::Handler::new(tg_bot.clone(), client.clone(), TOKEN.to_string());
 
   let work = bot::telegram::UpdateStream::new(tg_bot)
-    .filter_map(|update| match update {
-      Received::Message(msg) => Some(handler.handle_message(msg)),
-      Received::CallbackQuery(query) => Some(handler.handle_query(query)),
-      _ => None,
+    .filter_map(|up| match up {
+      Update::Message { message, .. } => Some(handler.handle_message(message)),
+      Update::CallbackQuery { callback_query, .. }  => Some(handler.handle_query(callback_query))
     })
     .and_then(|f| f)
     .map(|_| ())

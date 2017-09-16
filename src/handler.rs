@@ -44,6 +44,7 @@ impl Handler {
     &mut self,
     query: CallbackQuery,
   ) -> Box<Future<Item=Message, Error=Error>> {
+    let query_id = query.id;
     let user_id = query.from.id;
     let data = query.data.unwrap_or(String::new());
 
@@ -57,10 +58,13 @@ impl Handler {
         match parse_query(&data) {
           IResult::Done(_, command) => match command {
             QueryCommand::Offset { kitsu_id, offset } => {
-              self.offset(msg_id, chat_id, kitsu_id, offset)
+              self.offset(msg_id, chat_id, kitsu_id, offset, query_id)
             }
             QueryCommand::Detail { kitsu_id, anime_id } => {
-              self.detail(msg_id, chat_id, kitsu_id, anime_id)
+              self.detail(msg_id, chat_id, kitsu_id, anime_id, query_id)
+            }
+            QueryCommand::Progress { kitsu_id, anime_id, entry_id, progress } => {
+              self.detail(msg_id, chat_id, kitsu_id, anime_id, query_id)
             }
           },
           _ => self.unknown(chat_id),
@@ -80,19 +84,19 @@ impl Handler {
 
   fn list(&mut self, user_id: i64, chat_id: i64) -> Box<Future<Item=Message, Error=Error>> {
     let bot = self.bot.clone();
-    match self.db.get_user(user_id) {
+    match self.db.get_kitsu_id(user_id) {
       None => bot.send_message(
         chat_id,
         format!("Non-registered user: {}", user_id),
         None,
         None,
       ),
-      Some(user) => Box::new(
+      Some(kitsu_id) => Box::new(
         self
           .api
-          .fetch_anime(user.kitsu_id, 0)
+          .fetch_anime(kitsu_id, 0)
           .and_then(move |(prev, next, entries, animes)| {
-            Ok(parse_anime_list(user.kitsu_id, prev, next, entries, animes))
+            Ok(parse_anime_list(kitsu_id, prev, next, entries, animes))
           })
           .and_then(move |(text, buttons)| {
             bot.send_message(chat_id, text, Some(ParseMode::HTML), Some(buttons))
@@ -119,8 +123,10 @@ impl Handler {
     chat_id: i64,
     kitsu_id: i64,
     offset: i64,
+    query_id: String,
   ) -> Box<Future<Item=Message, Error=Error>> {
-    let bot = self.bot.clone();
+    let bot1 = self.bot.clone();
+    let bot2 = self.bot.clone();
     Box::new(
       self
         .api
@@ -129,7 +135,10 @@ impl Handler {
           Ok(parse_anime_list(kitsu_id, prev, next, entries, animes))
         })
         .and_then(move |(text, buttons)| {
-          bot.edit_inline_keyboard(msg_id, chat_id, text, Some(ParseMode::HTML), Some(buttons))
+          bot1.edit_inline_keyboard(msg_id, chat_id, text, Some(ParseMode::HTML), Some(buttons))
+        })
+        .and_then(move |_| {
+          bot2.answer_query(query_id, None, None)
         }),
     )
   }
@@ -140,6 +149,7 @@ impl Handler {
     chat_id: i64,
     kitsu_id: i64,
     anime_id: i64,
+    query_id: String,
   ) -> Box<Future<Item=Message, Error=Error>> {
     let bot = self.bot.clone();
     Box::new(

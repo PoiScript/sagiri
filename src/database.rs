@@ -43,7 +43,7 @@ impl Database {
           .and_then(|chunks| {
             future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
           })
-          .and_then(move |response| match response {
+          .and_then(move |res| match res {
             Response::Ok { data } => {
               users.borrow_mut().clone_from(&data);
               Ok(data)
@@ -55,12 +55,23 @@ impl Database {
     ))
   }
 
-  pub fn get_user(&mut self, telegram_id: i64) -> Option<User> {
+  pub fn get_kitsu_id(&mut self, telegram_id: i64) -> Option<i64> {
     self
       .users
       .borrow()
       .iter()
       .find(|&x| &x.telegram_id == &telegram_id)
+      .map(|ref x| &x.kitsu_id)
+      .cloned()
+  }
+
+  pub fn get_token(&mut self, telegram_id: i64, kitsu_id: i64) -> Option<String> {
+    self
+      .users
+      .borrow()
+      .iter()
+      .find(|&x| &x.telegram_id == &telegram_id && &x.kitsu_id == &kitsu_id)
+      .map(|ref x| &x.kitsu_token)
       .cloned()
   }
 }
