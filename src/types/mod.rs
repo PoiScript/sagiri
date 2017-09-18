@@ -25,6 +25,7 @@ pub struct User {
 pub enum MsgCommand {
   List,
   Update,
+  Version,
 }
 
 #[derive(Debug)]
@@ -36,5 +37,5 @@ pub enum QueryCommand {
     progress: i64,
     anime_id: String,
     entry_id: String,
-  }
+  },
 }

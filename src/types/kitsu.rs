@@ -27,8 +27,7 @@ pub enum Type {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Anime {
-  #[serde(default = "String::new")]
-  pub id: String,
+  #[serde(default = "String::new")] pub id: String,
   pub attributes: Option<AnimeAttributes>,
 }
 
@@ -86,18 +85,15 @@ pub struct UserAttributes {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entry {
   pub id: String,
-  #[serde(rename = "type")]
-  pub kind: Type,
+  #[serde(rename = "type")] pub kind: Type,
   pub attributes: Option<EntryAttributes>,
   pub relationships: Option<Relationships>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EntryAttributes {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub progress: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub status: Option<EntryStatus>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub progress: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub status: Option<EntryStatus>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

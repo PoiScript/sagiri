@@ -10,7 +10,8 @@ use types::telegram::*;
 named!(pub parse_message<&str, MsgCommand>,
   alt!(
     map!(tag!("/list"), |_| MsgCommand::List) |
-    map!(tag!("/update"), |_| MsgCommand::Update)
+    map!(tag!("/update"), |_| MsgCommand::Update) |
+    map!(tag!("/version"), |_| MsgCommand::Version)
   )
 );
 
@@ -63,15 +64,18 @@ pub fn parse_anime_detail(
     Some((entry, anime)) => {
       let anime_attr = anime.attributes.unwrap();
       let entry_attr = entry.attributes.unwrap();
-      buttons.push(vec![InlineKeyboardButton::with_callback_data(
-        format!("Make {} Complete", entry_attr.progress.unwrap_or(0) + 1),
-        format!(
-          "/{}/progress/{}/{}/{}/",
-          kitsu_id,
-          anime.id,
-          entry.id,
-          entry_attr.progress.unwrap_or(0) + 1),
-      )]);
+      buttons.push(vec![
+        InlineKeyboardButton::with_callback_data(
+          format!("Make {} Complete", entry_attr.progress.unwrap_or(0) + 1),
+          format!(
+            "/{}/progress/{}/{}/{}/",
+            kitsu_id,
+            anime.id,
+            entry.id,
+            entry_attr.progress.unwrap_or(0) + 1
+          ),
+        ),
+      ]);
       format!(
         "<b>Title</b>: {}\n\
          <b>JapaneseTitle</b>: {}\n\
@@ -88,10 +92,12 @@ pub fn parse_anime_detail(
       )
     }
   };
-  buttons.push(vec![InlineKeyboardButton::with_callback_data(
-    String::from("Back to List"),
-    format!("/{}/offset/0/", kitsu_id),
-  )]);
+  buttons.push(vec![
+    InlineKeyboardButton::with_callback_data(
+      String::from("Back to List"),
+      format!("/{}/offset/0/", kitsu_id),
+    ),
+  ]);
   (text, buttons)
 }
 
@@ -117,19 +123,31 @@ pub fn parse_anime_list(
     ))
   }
   let mut text = String::new();
-  for (i, (
-    &Entry { attributes: ref entry_attr, .. },
-    &Anime { id: ref anime_id, attributes: ref anime_attr, .. }
-  )) in entries.iter().zip(animes.iter()).enumerate() {
+  for (
+    i,
+    (
+      &Entry { attributes: ref entry_attr, .. },
+      &Anime {
+        id: ref anime_id,
+        attributes: ref anime_attr,
+        ..
+      },
+    ),
+  ) in entries.iter().zip(animes.iter()).enumerate()
+  {
     match (entry_attr, anime_attr) {
       (&Some(ref entry_attr), &Some(ref anime_attr)) => {
-        text.push_str(&format!("<b>{}|</b> {}\n", i, anime_attr.canonical_title));
+        text.push_str(&format!("<b>{}| {}</b>", i, anime_attr.canonical_title));
         text.push_str(&format!(
-          "    {}\n",
-          anime_attr.titles.ja_jp.as_ref().unwrap_or(&String::from("null"))
+          " <i>{}</i>",
+          anime_attr
+            .titles
+            .ja_jp
+            .as_ref()
+            .unwrap_or(&String::from("null"))
         ));
         text.push_str(&format!(
-          "    <b>{:?} [{}/{}]</b>\n",
+          "\n{:?} [{}/{}]\n",
           entry_attr.status.as_ref().unwrap_or(&EntryStatus::Unknown),
           entry_attr.progress.unwrap_or(0),
           anime_attr.episode_count.unwrap_or(99)
@@ -148,5 +166,6 @@ pub fn parse_anime_list(
       }
     }
   }
+  text.push_str("<i>Choose an anime from the list above.</i>");
   (text, vec![index, navigate])
 }

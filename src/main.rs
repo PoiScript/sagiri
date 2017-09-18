@@ -35,9 +35,7 @@ fn main() {
   let handle = core.handle();
 
   let client = hyper::Client::configure()
-    .connector(
-      hyper_tls::HttpsConnector::new(4, &handle).expect("error/create-connector"),
-    )
+    .connector(hyper_tls::HttpsConnector::new(4, &handle).expect("error/create-connector"))
     .build(&handle);
 
   let tg_bot = bot::telegram::Bot::new(TOKEN, client.clone());
@@ -47,7 +45,7 @@ fn main() {
   let work = bot::telegram::UpdateStream::new(tg_bot)
     .filter_map(|up| match up {
       Update::Message { message, .. } => Some(handler.handle_message(message)),
-      Update::CallbackQuery { callback_query, .. }  => Some(handler.handle_query(callback_query))
+      Update::CallbackQuery { callback_query, .. } => Some(handler.handle_query(callback_query)),
     })
     .and_then(|f| f)
     .map(|_| ())

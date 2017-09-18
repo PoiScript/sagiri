@@ -27,8 +27,9 @@ impl Bot {
     }
   }
 
-  fn request<S>(&self, method: &str, data: &S) -> Box<Future<Item=Response, Error=Error>>
-    where S: Serialize,
+  fn request<S>(&self, method: &str, data: &S) -> Box<Future<Item = Response, Error = Error>>
+  where
+    S: Serialize,
   {
     let uri = Uri::from_str(&format!("{}{}", self.base_url, method)).expect("error/build-uri");
 
@@ -49,7 +50,7 @@ impl Bot {
             future::result::<Response, Error>(from_slice(&chunks).map_err(|e| e.into()))
           })
           .and_then(|res| match res {
-            Response::Error { description } => Err(Error::Telegram(TelegramError { description })),
+            Response::Error { description } => Err(TelegramError::new(description)),
             _ => Ok(res),
           })
       },
@@ -62,7 +63,7 @@ impl Bot {
     text: String,
     parse_mode: Option<ParseMode>,
     buttons: Option<Vec<Vec<InlineKeyboardButton>>>,
-  ) -> Box<Future<Item=Message, Error=Error>> {
+  ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
       parse_mode,
       text: Some(text),
@@ -70,13 +71,12 @@ impl Bot {
       reply_markup: buttons.map(|b| ReplyMarkup::InlineKeyboard(b)),
       ..Default::default()
     };
-    Box::new(
-      self.request::<Message>("sendMessage", &message)
-        .and_then(|res| match res {
-          Response::Message { result } => Ok(result),
-          _ => Err(Error::Telegram(TelegramError { description: String::from("Invalid JSON") }))
-        })
-    )
+    Box::new(self.request::<Message>("sendMessage", &message).and_then(
+      |res| match res {
+        Response::Message { result } => Ok(result),
+        _ => Err(TelegramError::new("Invalid JSON".to_owned())),
+      },
+    ))
   }
 
   pub fn edit_inline_keyboard(
@@ -86,7 +86,7 @@ impl Bot {
     text: String,
     parse_mode: Option<ParseMode>,
     buttons: Option<Vec<Vec<InlineKeyboardButton>>>,
-  ) -> Box<Future<Item=Message, Error=Error>> {
+  ) -> Box<Future<Item = Message, Error = Error>> {
     let message = Message {
       parse_mode,
       text: Some(text),
@@ -96,11 +96,12 @@ impl Bot {
       ..Default::default()
     };
     Box::new(
-      self.request::<Message>("editMessageText", &message)
+      self
+        .request::<Message>("editMessageText", &message)
         .and_then(|res| match res {
           Response::Message { result } => Ok(result),
-          _ => Err(Error::Telegram(TelegramError { description: String::from("Invalid JSON") }))
-        })
+          _ => Err(TelegramError::new("Invalid JSON".to_owned())),
+        }),
     )
   }
 
@@ -109,18 +110,16 @@ impl Bot {
     callback_query_id: String,
     text: Option<String>,
     show_alert: Option<bool>,
-  ) -> Box<Future<Item=bool, Error=Error>> {
-    let query_answer = QueryAnswer {
-      text,
-      show_alert,
-      callback_query_id,
-    };
+  ) -> Box<Future<Item = bool, Error = Error>> {
+    let query_answer = QueryAnswer { text, show_alert, callback_query_id };
     Box::new(
-      self.request::<QueryAnswer>("answerCallbackQuery", &query_answer)
+      self
+        .request::<QueryAnswer>("answerCallbackQuery", &query_answer)
         .and_then(|res| match res {
           Response::Bool { result } => Ok(result),
-          _ => Err(Error::Telegram(TelegramError { description: String::from("Invalid JSON") }))
-        }))
+          _ => Err(TelegramError::new("Invalid JSON".to_owned())),
+        }),
+    )
   }
 }
 
@@ -129,7 +128,7 @@ pub struct UpdateStream {
   timeout: Duration,
   next_offset: i32,
   pending_updates: Vec<Update>,
-  pending_response: Option<Box<Future<Item=Vec<Update>, Error=Error>>>,
+  pending_response: Option<Box<Future<Item = Vec<Update>, Error = Error>>>,
 }
 
 impl UpdateStream {
@@ -143,20 +142,18 @@ impl UpdateStream {
     }
   }
 
-  fn get_updates(&self, offset: i32) -> Box<Future<Item=Vec<Update>, Error=Error>> {
+  fn get_updates(&self, offset: i32) -> Box<Future<Item = Vec<Update>, Error = Error>> {
     let req = GetUpdate {
       offset,
       timeout: self.timeout.as_secs() as i32,
     };
 
-    Box::new(
-      self.bot
-        .request("getUpdates", &req)
-        .and_then(|res| match res {
-          Response::Update { result } => Ok(result),
-          _ => Err(Error::Telegram(TelegramError { description: String::from("Invalid JSON") }))
-        })
-    )
+    Box::new(self.bot.request("getUpdates", &req).and_then(
+      |res| match res {
+        Response::Update { result } => Ok(result),
+        _ => Err(TelegramError::new("Invalid JSON".to_owned())),
+      },
+    ))
   }
 }
 
@@ -170,8 +167,7 @@ impl Stream for UpdateStream {
       while let Some(update) = self.pending_updates.pop() {
         // update offset
         let new_offset = match update {
-          Update::Message { update_id, .. } |
-          Update::CallbackQuery { update_id, .. } => update_id
+          Update::Message { update_id, .. } | Update::CallbackQuery { update_id, .. } => update_id,
         };
         if new_offset < self.next_offset {
           continue;

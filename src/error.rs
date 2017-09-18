@@ -79,6 +79,12 @@ pub struct TelegramError {
   pub description: String,
 }
 
+impl TelegramError {
+  pub fn new(description: String) -> Error {
+    Error::Telegram(TelegramError { description })
+  }
+}
+
 #[derive(Debug)]
 pub struct DatabaseError {
   pub description: String,

@@ -11,27 +11,22 @@ pub enum Response {
 #[derive(Debug, Deserialize)]
 pub enum Update {
   Message { update_id: i32, message: Message },
-  CallbackQuery { update_id: i32, callback_query: CallbackQuery }
+  CallbackQuery {
+    update_id: i32,
+    callback_query: CallbackQuery,
+  },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Message {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub message_id: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub from: Option<User>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub date: Option<i32>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub chat: Option<Chat>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub text: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub chat_id: Option<i64>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub reply_markup: Option<ReplyMarkup>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub parse_mode: Option<ParseMode>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub message_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub from: Option<User>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub date: Option<i32>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub chat: Option<Chat>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub text: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub chat_id: Option<i64>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub reply_markup: Option<ReplyMarkup>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub parse_mode: Option<ParseMode>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -112,9 +107,7 @@ pub struct GetUpdate {
 
 #[derive(Serialize)]
 pub struct QueryAnswer {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub text: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub show_alert: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub text: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")] pub show_alert: Option<bool>,
   pub callback_query_id: String,
 }

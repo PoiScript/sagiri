@@ -70,7 +70,9 @@ impl Database {
       .users
       .borrow()
       .iter()
-      .find(|&x| &x.telegram_id == &telegram_id && &x.kitsu_id == &kitsu_id)
+      .find(|&x| {
+        &x.telegram_id == &telegram_id && &x.kitsu_id == &kitsu_id
+      })
       .map(|ref x| &x.kitsu_token)
       .cloned()
   }
