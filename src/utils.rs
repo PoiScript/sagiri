@@ -3,6 +3,8 @@ use std::str::FromStr;
 
 use url::Url;
 
+use chrono::{Duration, Utc};
+
 use types::{MsgCommand, QueryCommand};
 use types::kitsu::*;
 use types::telegram::*;
@@ -54,10 +56,23 @@ pub fn get_offset(url: Option<String>) -> Option<String> {
   })
 }
 
+pub fn parse_duration(duration: Duration) -> String {
+  if duration.num_days() > 0 {
+    format!("{} days", duration.num_days())
+  } else if duration.num_hours() > 0 {
+    format!("{} hrs", duration.num_hours())
+  } else if duration.num_minutes() > 0 {
+    format!("{} mins", duration.num_minutes())
+  } else {
+    format!("{} secs", duration.num_seconds())
+  }
+}
+
 pub fn parse_anime_detail(
   kitsu_id: i64,
   pair: Option<(Entry, Anime)>,
 ) -> (String, Vec<Vec<InlineKeyboardButton>>) {
+  let current = Utc::now();
   let mut buttons = Vec::new();
   let text = match pair {
     None => format!("Error: No Anime Found :("),
@@ -81,7 +96,8 @@ pub fn parse_anime_detail(
          <b>JapaneseTitle</b>: {}\n\
          <b>Subtype</b>: {:?}\n\
          <b>Status</b>: {:?}\n\
-         <b>Progress</b>: {:?} [{}/{}]",
+         <b>Progress</b>: {:?} [{}/{}]\n\
+         <b>Updated</b>: {} ago",
         anime_attr.canonical_title,
         anime_attr.titles.ja_jp.unwrap_or(String::from("null")),
         anime_attr.subtype.unwrap_or(AnimeSubtype::Unknown),
@@ -89,6 +105,7 @@ pub fn parse_anime_detail(
         entry_attr.status.unwrap_or(EntryStatus::Unknown),
         entry_attr.progress.unwrap_or(0),
         anime_attr.episode_count.unwrap_or(99),
+        parse_duration(current.signed_duration_since(entry_attr.updated_at.unwrap_or(current)))
       )
     }
   };
@@ -108,6 +125,7 @@ pub fn parse_anime_list(
   entries: Vec<Entry>,
   animes: Vec<Anime>,
 ) -> (String, Vec<Vec<InlineKeyboardButton>>) {
+  let current = Utc::now();
   let mut index = vec![];
   let mut navigate = vec![];
   if let Some(offset) = get_offset(prev) {
@@ -137,20 +155,20 @@ pub fn parse_anime_list(
   {
     match (entry_attr, anime_attr) {
       (&Some(ref entry_attr), &Some(ref anime_attr)) => {
-        text.push_str(&format!("<b>{}| {}</b>", i, anime_attr.canonical_title));
         text.push_str(&format!(
-          " <i>{}</i>",
+          "<b>{}| {}</b> <i>{}</i>\n\
+           {:?} [{}/{}] updated {} ago\n\n",
+          i,
+          anime_attr.canonical_title,
           anime_attr
             .titles
             .ja_jp
             .as_ref()
-            .unwrap_or(&String::from("null"))
-        ));
-        text.push_str(&format!(
-          "\n{:?} [{}/{}]\n",
+            .unwrap_or(&String::from("null")),
           entry_attr.status.as_ref().unwrap_or(&EntryStatus::Unknown),
           entry_attr.progress.unwrap_or(0),
-          anime_attr.episode_count.unwrap_or(99)
+          anime_attr.episode_count.unwrap_or(99),
+          parse_duration(current.signed_duration_since(entry_attr.updated_at.unwrap_or(current)))
         ));
         index.push(InlineKeyboardButton::with_callback_data(
           format!("{} {}", i, anime_attr.canonical_title),

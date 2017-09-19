@@ -153,6 +153,7 @@ impl Api {
         kind: Type::LibraryEntries,
         attributes: Some(EntryAttributes {
           status: None,
+          updated_at: None,
           progress: Some(progress),
         }),
         relationships: Some(Relationships {

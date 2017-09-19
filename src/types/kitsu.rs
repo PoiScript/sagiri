@@ -1,3 +1,5 @@
+use chrono::prelude::{DateTime, Utc};
+
 #[serde(untagged)]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Json {
@@ -94,6 +96,9 @@ pub struct Entry {
 pub struct EntryAttributes {
   #[serde(skip_serializing_if = "Option::is_none")] pub progress: Option<i64>,
   #[serde(skip_serializing_if = "Option::is_none")] pub status: Option<EntryStatus>,
+  #[serde(rename = "updatedAt")]
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

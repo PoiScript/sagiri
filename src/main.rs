@@ -1,5 +1,6 @@
 #![feature(custom_attribute)]
 
+extern crate chrono;
 extern crate env_logger;
 extern crate futures;
 extern crate hyper;
